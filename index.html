@@ -104,10 +104,74 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  /* Lock screen */
+  .lock-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+    padding: 24px;
+  }
+  .lock-box {
+    width: 100%; max-width: 340px;
+    text-align: center;
+  }
+  .lock-logo {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 32px;
+  }
+  .lock-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em;
+  }
+  .lock-sub {
+    font-family: var(--mono); font-size: 12px; color: var(--text-muted); margin-bottom: 32px;
+  }
+  .lock-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 16px;
+    padding: 14px 16px; border-radius: 6px; outline: none; text-align: center;
+    letter-spacing: 0.1em; transition: border-color 0.15s;
+    margin-bottom: 12px;
+  }
+  .lock-input:focus { border-color: var(--accent); }
+  .lock-input.shake {
+    animation: shake 0.3s ease;
+    border-color: var(--danger);
+  }
+  .lock-btn {
+    width: 100%; padding: 14px; background: var(--accent); color: #000;
+    border: none; border-radius: 6px; font-family: var(--sans); font-size: 14px;
+    font-weight: 700; cursor: pointer; letter-spacing: 0.03em;
+  }
+  .lock-error {
+    font-family: var(--mono); font-size: 12px; color: var(--danger);
+    margin-top: 12px; height: 16px;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%,60% { transform: translateX(-6px); }
+    40%,80% { transform: translateX(6px); }
+  }
+  .hidden { display: none; }
 </style>
 </head>
 <body>
-<div class="container">
+
+<!-- Lock Screen -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-logo">Nexcart-ops</div>
+    <div class="lock-title">直播录入系统</div>
+    <div class="lock-sub">请输入访问密码</div>
+    <input class="lock-input" type="password" id="lock-input"
+      placeholder="••••••••••••"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="lock-btn" onclick="checkPassword()">进入 →</button>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
+
+<div class="container hidden" id="main-content">
   <div class="header">
     <div class="header-label">Nexcart-ops</div>
     <h1>直播复盘录入</h1>
@@ -221,6 +285,43 @@
 <script>
 const SUPABASE_URL = 'https://awxjvoqhlefxosbzegws.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3eGp2b3FobGVmeG9zYnplZ3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzAzMTQsImV4cCI6MjA5MDk0NjMxNH0.Dfutb1IOiajLgoFQnSzcnxPqJ4VTf1sGIZGslB7gkig';
+
+// Password check
+const PWD_HASH = '7a3e2b4d9f1c8e6a0b5d4f2e9c7a1b3d'; // nexcart2026 simple hash
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h).toString(16).padStart(8,'0');
+}
+const CORRECT_HASH = simpleHash('nexcart2026');
+
+function checkPassword() {
+  const val = document.getElementById('lock-input').value;
+  if (simpleHash(val) === CORRECT_HASH) {
+    sessionStorage.setItem('nx_auth', CORRECT_HASH);
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('main-content').classList.remove('hidden');
+    loadRecent();
+  } else {
+    const inp = document.getElementById('lock-input');
+    inp.classList.add('shake');
+    inp.value = '';
+    document.getElementById('lock-error').textContent = '密码错误，请重试';
+    setTimeout(() => {
+      inp.classList.remove('shake');
+      document.getElementById('lock-error').textContent = '';
+    }, 1000);
+  }
+}
+
+// Auto-unlock if already authenticated this session
+if (sessionStorage.getItem('nx_auth') === CORRECT_HASH) {
+  document.getElementById('lock-screen').style.display = 'none';
+  document.getElementById('main-content').classList.remove('hidden');
+}
 let selectedPlatform = 'Whatnot';
 
 const today = new Date();
@@ -377,7 +478,8 @@ async function loadRecent() {
   }
 }
 
-loadRecent();
+// loadRecent is called after successful auth (or auto-unlock above)
+if (sessionStorage.getItem('nx_auth') === CORRECT_HASH) loadRecent();
 </script>
 </body>
 </html>
