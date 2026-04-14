@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Nexcart 业务智能体</title>
+<title>Nexcart 业务智能体 v3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -46,9 +46,8 @@
   .lock-logo { font-size: 48px; margin-bottom: 8px; }
   .lock-title { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
   .lock-subtitle { font-size: 14px; color: var(--text-muted); }
-  .lock-input-wrap {
-    display: flex; gap: 8px; margin-top: 8px;
-  }
+  .lock-version { font-size: 11px; color: var(--text-muted); margin-top: -16px; opacity: 0.5; }
+  .lock-input-wrap { display: flex; gap: 8px; margin-top: 8px; }
   .lock-input-wrap input {
     width: 220px; padding: 12px 16px;
     background: var(--bg-card); border: 1px solid var(--border);
@@ -171,6 +170,27 @@
   .msg-bubble th, .msg-bubble td { padding: 6px 10px; border: 1px solid var(--border); text-align: left; }
   .msg-bubble th { background: var(--bg-card); color: var(--accent); font-weight: 600; }
 
+  /* 图片消息 */
+  .msg-bubble img.chat-img {
+    max-width: 200px; max-height: 200px;
+    border-radius: 10px; margin: 6px 0;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform .2s;
+  }
+  .msg-bubble img.chat-img:hover { transform: scale(1.05); }
+
+  /* 搜索标签 */
+  .search-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; margin-bottom: 8px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px; font-size: 11px;
+    color: var(--accent-blue);
+  }
+  .search-badge::before { content: '🌐'; }
+
   /* 打字动画 */
   .typing-indicator { display: flex; gap: 4px; padding: 4px 0; }
   .typing-dot {
@@ -181,6 +201,11 @@
   .typing-dot:nth-child(2) { animation-delay: .2s; }
   .typing-dot:nth-child(3) { animation-delay: .4s; }
   @keyframes typingBounce { 0%,60%,100% { transform:translateY(0); } 30% { transform:translateY(-6px); } }
+
+  /* 加载状态文字 */
+  .typing-status {
+    font-size: 12px; color: var(--text-muted); margin-top: 4px;
+  }
 
   /* 欢迎消息 */
   .welcome {
@@ -198,6 +223,28 @@
   }
   .welcome li:last-child { border: none; }
   .welcome li::before { content: '→ '; color: var(--accent); }
+
+  /* ====== 图片预览区 ====== */
+  .image-preview {
+    display: none; padding: 8px 16px 0;
+    background: var(--bg-secondary);
+  }
+  .image-preview.active { display: flex; align-items: center; gap: 10px; }
+  .preview-thumb {
+    width: 60px; height: 60px; border-radius: 8px;
+    object-fit: cover; border: 2px solid var(--accent);
+  }
+  .preview-info { flex: 1; }
+  .preview-name { font-size: 13px; color: var(--text-secondary); }
+  .preview-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .preview-remove {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+  }
+  .preview-remove:hover { background: var(--accent-red); color: white; border-color: var(--accent-red); }
 
   /* ====== 输入区 ====== */
   .input-area {
@@ -222,6 +269,23 @@
   }
   .input-wrap textarea:focus { border-color: var(--accent); }
   .input-wrap textarea::placeholder { color: var(--text-muted); }
+
+  /* 图片上传按钮 */
+  .img-btn {
+    width: 44px; height: 44px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; flex-shrink: 0;
+    position: relative;
+  }
+  .img-btn:hover { border-color: var(--accent); background: var(--accent-glow); }
+  .img-btn.has-image { border-color: var(--accent); background: var(--accent-glow); }
+  .img-btn svg { width: 22px; height: 22px; stroke: var(--text-secondary); fill: none; stroke-width: 1.5; }
+  .img-btn:hover svg { stroke: var(--accent); }
+  .img-btn.has-image svg { stroke: var(--accent); }
+  .img-btn input { display: none; }
+
   .send-btn {
     width: 44px; height: 44px;
     background: var(--accent); border: none;
@@ -232,6 +296,16 @@
   .send-btn:hover { background: #059669; transform: scale(1.05); }
   .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
   .send-btn svg { width: 20px; height: 20px; fill: white; }
+
+  /* ====== 图片灯箱 ====== */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.9);
+    align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 90%; max-height: 90%; border-radius: 8px; }
 
   /* ====== 错误提示 ====== */
   .error-banner {
@@ -265,11 +339,17 @@
   <div class="lock-logo">📊</div>
   <div class="lock-title">NEXCART-OPS</div>
   <div class="lock-subtitle">业务分析智能体</div>
+  <div class="lock-version">v3.0 · 图片识别 · 全网比价</div>
   <div class="lock-input-wrap">
     <input type="password" id="pwdInput" placeholder="请输入访问密码" onkeydown="if(event.key==='Enter')unlock()">
     <button onclick="unlock()">进入</button>
   </div>
   <div class="lock-error" id="lockError"></div>
+</div>
+
+<!-- 图片灯箱 -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="">
 </div>
 
 <!-- 主应用 -->
@@ -279,7 +359,7 @@
     <div class="top-left">
       <div class="top-dot" id="statusDot"></div>
       <div>
-        <div class="top-brand">NEXCART-OPS</div>
+        <div class="top-brand">NEXCART-OPS v3</div>
         <div class="top-title">业务分析智能体</div>
       </div>
     </div>
@@ -311,7 +391,7 @@
   <!-- 快捷问题 -->
   <div class="quick-bar">
     <button class="quick-btn" onclick="ask('最近10场的毛利率趋势怎么样？哪几场表现最好？')">📈 毛利趋势</button>
-    <button class="quick-btn" onclick="ask('帮我分析一下鞋型成交价排名，哪种鞋最赚钱？')">👟 鞋型排名</button>
+    <button class="quick-btn" onclick="ask('帮我分析一下各品类成交价排名，哪种商品最赚钱？')">👟 品类排名</button>
     <button class="quick-btn" onclick="ask('热销尺码分析，哪些尺码卖得最好？')">📏 尺码分析</button>
     <button class="quick-btn" onclick="ask('对比一下各平台的表现，哪个平台利润率最高？')">⚖️ 平台对比</button>
     <button class="quick-btn" onclick="ask('分析最近的最佳场次，是什么让它表现好？')">🏆 最佳场次</button>
@@ -323,21 +403,38 @@
   <!-- 聊天区域 -->
   <div class="chat-area" id="chatArea">
     <div class="welcome">
-      <h2>你好！我是 <span>Nexcart 业务智能体</span></h2>
-      <p>已连接到实时数据库，所有数据 100% 真实准确。</p>
+      <h2>你好！我是 <span>Nexcart 业务智能体 v3</span></h2>
+      <p>已连接实时数据库 + 全网比价引擎，所有数据 100% 真实准确。</p>
       <ul>
+        <li>📷 拍照上传商品图片，自动识别品牌并给出采购/售价建议</li>
+        <li>🌐 自动搜索全网（eBay/Amazon/Poshmark等）同款在售价格</li>
         <li>问我任何关于 GMV、毛利率、成交量的问题</li>
-        <li>分析鞋型、品牌、尺码的销售表现</li>
+        <li>分析品类、品牌、尺码的销售表现</li>
         <li>对比不同场次和平台的数据</li>
         <li>获取基于数据的排品和运营建议</li>
       </ul>
     </div>
   </div>
 
+  <!-- 图片预览区 -->
+  <div class="image-preview" id="imagePreview">
+    <img class="preview-thumb" id="previewThumb" src="" alt="">
+    <div class="preview-info">
+      <div class="preview-name" id="previewName">image.jpg</div>
+      <div class="preview-hint">发送后自动识别商品 + 全网比价</div>
+    </div>
+    <button class="preview-remove" onclick="removeImage()" title="移除图片">✕</button>
+  </div>
+
   <!-- 输入区 -->
   <div class="input-area">
     <div class="input-wrap">
-      <textarea id="msgInput" rows="1" placeholder="问我任何关于你生意的问题..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <!-- 图片上传按钮 -->
+      <div class="img-btn" id="imgBtn" onclick="document.getElementById('imgFile').click()" title="上传商品图片">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <input type="file" id="imgFile" accept="image/*" capture="environment" onchange="handleImageSelect(event)">
+      </div>
+      <textarea id="msgInput" rows="1" placeholder="问我任何问题，或拍照识别商品..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">
         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
@@ -351,6 +448,7 @@ const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
 const CORRECT_HASH = 'nexcart2026';
 const chatHistory = [];
 let isLoading = false;
+let pendingImage = null; // { base64, mediaType, fileName, dataUrl }
 
 // ============ 密码验证 ============
 function unlock() {
@@ -386,11 +484,55 @@ async function loadStats() {
   }
 }
 
+// ============ 图片处理 ============
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // 限制文件大小 10MB
+  if (file.size > 10 * 1024 * 1024) {
+    showErrorBanner('图片太大，请选择 10MB 以下的图片');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1];
+    const mediaType = file.type || 'image/jpeg';
+
+    pendingImage = { base64, mediaType, fileName: file.name, dataUrl };
+
+    // 显示预览
+    document.getElementById('previewThumb').src = dataUrl;
+    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('imagePreview').classList.add('active');
+    document.getElementById('imgBtn').classList.add('has-image');
+
+    // 自动聚焦输入框
+    document.getElementById('msgInput').placeholder = '输入问题（可选），或直接发送分析图片...';
+    document.getElementById('msgInput').focus();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  pendingImage = null;
+  document.getElementById('imagePreview').classList.remove('active');
+  document.getElementById('imgBtn').classList.remove('has-image');
+  document.getElementById('imgFile').value = '';
+  document.getElementById('msgInput').placeholder = '问我任何问题，或拍照识别商品...';
+}
+
 // ============ 发送消息 ============
 async function sendMessage() {
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
-  if (!text || isLoading) return;
+  const hasImage = !!pendingImage;
+
+  if (!text && !hasImage) return;
+  if (isLoading) return;
 
   isLoading = true;
   const btn = document.getElementById('sendBtn');
@@ -399,24 +541,54 @@ async function sendMessage() {
   autoResize(input);
 
   // 添加用户消息
-  addMessage('user', text);
-  chatHistory.push({ role: 'user', content: text });
+  if (hasImage) {
+    addMessage('user', text || '请分析这个商品', pendingImage.dataUrl);
+  } else {
+    addMessage('user', text);
+  }
 
   // 添加打字动画
-  const typingId = addTyping();
+  const typingId = addTyping(hasImage ? '正在识别商品 + 全网搜索比价...' : null);
 
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: chatHistory.slice(-10), // 保留最近10条对话上下文
-      }),
-    });
+    let result;
 
-    const result = await res.json();
+    if (hasImage) {
+      // 图片分析模式
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: {
+            base64: pendingImage.base64,
+            mediaType: pendingImage.mediaType,
+          },
+          userMessage: text || '请识别这个商品的品牌、品类，结合历史数据和全网比价给出采购价和售价建议。',
+        }),
+      });
+      result = await res.json();
+
+      // 记录到历史（纯文本形式）
+      chatHistory.push({
+        role: 'user',
+        content: text || '[上传了商品图片进行分析]'
+      });
+
+    } else {
+      // 普通聊天
+      chatHistory.push({ role: 'user', content: text });
+
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: chatHistory.slice(-10),
+        }),
+      });
+      result = await res.json();
+    }
 
     // 移除打字动画
     removeTyping(typingId);
@@ -430,12 +602,13 @@ async function sendMessage() {
       reply = '⚠️ 返回数据异常，请重试。';
     }
 
-    // 检查是否有内部错误标记
     if (result._error === 'credit_balance') {
       showErrorBanner('API 额度不足，请联系管理员充值');
     }
 
-    addMessage('ai', reply);
+    // 如果有全网搜索数据，加上标签
+    const hasSearch = result._webSearch || result._productInfo;
+    addMessage('ai', reply, null, hasSearch);
     chatHistory.push({ role: 'assistant', content: reply });
 
   } catch (e) {
@@ -446,6 +619,9 @@ async function sendMessage() {
     addMessage('ai', errMsg);
     showErrorBanner('网络连接异常，请检查网络');
   }
+
+  // 清理图片
+  removeImage();
 
   isLoading = false;
   btn.disabled = false;
@@ -459,7 +635,7 @@ function ask(question) {
 }
 
 // ============ 消息渲染 ============
-function addMessage(role, text) {
+function addMessage(role, text, imageUrl, hasSearch) {
   const area = document.getElementById('chatArea');
   const div = document.createElement('div');
   div.className = `msg ${role}`;
@@ -467,15 +643,29 @@ function addMessage(role, text) {
   const avatar = role === 'ai' ? '📊' : '👤';
   const formatted = role === 'ai' ? formatMarkdown(text) : escapeHtml(text);
 
+  let imageHtml = '';
+  if (imageUrl) {
+    imageHtml = `<img class="chat-img" src="${imageUrl}" onclick="openLightbox(this.src)" alt="商品图片">`;
+  }
+
+  let searchBadge = '';
+  if (hasSearch && role === 'ai') {
+    searchBadge = '<div class="search-badge">已搜索全网比价</div>';
+  }
+
   div.innerHTML = `
     <div class="msg-avatar">${avatar}</div>
-    <div class="msg-bubble">${formatted}</div>
+    <div class="msg-bubble">
+      ${imageHtml}
+      ${searchBadge}
+      ${formatted}
+    </div>
   `;
   area.appendChild(div);
   area.scrollTop = area.scrollHeight;
 }
 
-function addTyping() {
+function addTyping(statusText) {
   const area = document.getElementById('chatArea');
   const id = 'typing-' + Date.now();
   const div = document.createElement('div');
@@ -489,6 +679,7 @@ function addTyping() {
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
       </div>
+      ${statusText ? `<div class="typing-status">${statusText}</div>` : ''}
     </div>
   `;
   area.appendChild(div);
@@ -499,6 +690,15 @@ function addTyping() {
 function removeTyping(id) {
   const el = document.getElementById(id);
   if (el) el.remove();
+}
+
+// ============ 图片灯箱 ============
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
 }
 
 // ============ Markdown 解析 ============
@@ -515,26 +715,15 @@ function formatMarkdown(text) {
     return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
   });
 
-  // 标题
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^# (.+)$/gm, '<h3>$1</h3>');
-
-  // 加粗
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-  // 列表
   html = html.replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
   html = html.replace(/<\/ul>\s*<ul>/g, '');
-
-  // 数字列表
   html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-
-  // 代码
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // 换行
   html = html.replace(/\n\n/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
 
@@ -571,8 +760,32 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
+// ============ 键盘快捷键 ============
+document.addEventListener('keydown', (e) => {
+  // ESC 关闭灯箱
+  if (e.key === 'Escape') closeLightbox();
+  // Ctrl+V 粘贴图片
+  if (e.ctrlKey && e.key === 'v') {
+    // 由 paste 事件处理
+  }
+});
+
+// 支持粘贴图片
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (let item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      const fakeEvent = { target: { files: [file] } };
+      handleImageSelect(fakeEvent);
+      break;
+    }
+  }
+});
+
 // ============ 初始化 ============
-// 自动聚焦密码输入框
 document.getElementById('pwdInput').focus();
 </script>
 </body>
