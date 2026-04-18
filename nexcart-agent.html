@@ -1200,4 +1200,566 @@ function removeImage() {
   document.getElementById('imagePreview').classList.remove('active');
   document.getElementById('imgBtn').classList.remove('has-image');
   document.getElementById('imgFile').value = '';
-  document.getElementById('msgInput').placeholder = '问我任�
+  document.getElementById('msgInput').placeholder = '问我任何问题，或拍照识别商品...';
+}
+
+// ============ 发送消息 ============
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  const hasImage = \!\!pendingImage;
+
+  if (\!text && \!hasImage) return;
+  if (isLoading) return;
+
+  isLoading = true;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  input.value = '';
+  autoResize(input);
+
+  if (hasImage) {
+    addMessage('user', text || '请分析这个商品', pendingImage.dataUrl);
+  } else {
+    addMessage('user', text);
+  }
+
+  const typingId = addTyping(hasImage ? '正在识别商品 + 全网搜索比价...' : '正在查询数据库...');
+
+  try {
+    let result;
+
+    if (hasImage) {
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: { base64: pendingImage.base64, mediaType: pendingImage.mediaType },
+          userMessage: text || '请识别这个商品的品牌、品类，结合历史数据和全网比价给出采购价和售价建议。',
+        }),
+      });
+      result = await res.json();
+      chatHistory.push({ role: 'user', content: text || '[上传了商品图片进行分析]' });
+    } else {
+      chatHistory.push({ role: 'user', content: text });
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: chatHistory.slice(-10),
+        }),
+      });
+      result = await res.json();
+    }
+
+    removeTyping(typingId);
+
+    let reply = '';
+    if (result.content && result.content[0]) {
+      reply = result.content[0].text;
+    } else if (result.error) {
+      reply = '⚠️ ' + (result.error.message || JSON.stringify(result.error));
+    } else {
+      reply = '⚠️ 返回数据异常，请重试。';
+    }
+
+    if (result._error === 'credit_balance') {
+      showErrorBanner('API 额度不足，请联系管理员充值');
+    }
+
+    const hasSearch = result._webSearch || result._productInfo;
+    const toolsUsed = result._tools_used || [];
+    addMessage('ai', reply, null, hasSearch, toolsUsed);
+    chatHistory.push({ role: 'assistant', content: reply });
+
+  } catch (e) {
+    removeTyping(typingId);
+    const errMsg = e.message.includes('Failed to fetch')
+      ? '⚠️ 网络连接失败，请检查网络后重试。'
+      : '⚠️ 请求失败: ' + e.message;
+    addMessage('ai', errMsg);
+    showErrorBanner('网络连接异常，请检查网络');
+  }
+
+  removeImage();
+  isLoading = false;
+  btn.disabled = false;
+  input.focus();
+}
+
+// ============ 快捷提问 ============
+function ask(question) {
+  document.getElementById('msgInput').value = question;
+  sendMessage();
+}
+
+// ============ 消息渲染 ============
+function addMessage(role, text, imageUrl, hasSearch, toolsUsed) {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = role === 'ai' ? '📊' : '👤';
+  const formatted = role === 'ai' ? formatMarkdown(text) : escapeHtml(text);
+
+  let imageHtml = '';
+  if (imageUrl) {
+    imageHtml = `<img class="chat-img" src="${imageUrl}" onclick="openLightbox(this.src)" alt="商品图片">`;
+  }
+
+  let badges = '';
+  if (role === 'ai') {
+    if (toolsUsed && toolsUsed.length > 0) {
+      const toolNames = { query_shows: '场次查询', query_sales: '单品查询', get_summary_stats: '全局统计' };
+      const uniqueTools = [...new Set(toolsUsed)];
+      badges += uniqueTools.map(t => `<span class="tool-badge">${toolNames[t] || t}</span>`).join('');
+    }
+    if (hasSearch) {
+      badges += '<span class="search-badge">已搜索全网比价</span>';
+    }
+  }
+
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble">
+      ${imageHtml}
+      ${badges}
+      ${formatted}
+    </div>
+  `;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function addTyping(statusText) {
+  const area = document.getElementById('chatArea');
+  const id = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar">📊</div>
+    <div class="msg-bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+      ${statusText ? `<div class="typing-status">${statusText}</div>` : ''}
+    </div>
+  `;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ============ 图片灯箱 ============
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+
+// ============ Markdown 解析 ============
+function formatMarkdown(text) {
+  let html = escapeHtml(text);
+
+  html = html.replace(/\n?\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (match, header, body) => {
+    const ths = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const rows = body.trim().split('\n').map(row => {
+      const tds = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
+  });
+
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+
+  return `<p>${html}</p>`;
+}
+
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+  return text.replace(/[&<>"]/g, c => map[c]);
+}
+
+// ============ 错误提示 ============
+function showErrorBanner(msg) {
+  const existing = document.querySelector('.error-banner');
+  if (existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.className = 'error-banner';
+  banner.textContent = msg;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+// ============ 输入交互 ============
+function handleKey(e) {
+  if (e.key === 'Enter' && \!e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ============ 通知系统 v5 ============
+async function checkUnreadNotifications() {
+  try {
+    const res = await fetch(WORKER_URL + '/notifications?unread=true');
+    const data = await res.json();
+    const items = data.notifications || data || [];
+    const count = items.length;
+    const badge = document.getElementById('notifBadge');
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (e) { console.log('Notification check failed:', e); }
+}
+
+function renderNotifications(data) {
+  const section = document.getElementById('notifSection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const items = data.notifications || data || [];
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h3 style="color:var(--accent);margin:0;">通知中心</h3>
+    <button onclick="markAllRead()" style="background:var(--accent);color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">全部已读</button>
+  </div>`;
+
+  if (items.length === 0) {
+    html += '<div class="notif-empty">暂无通知</div>';
+  } else {
+    items.forEach(n => {
+      const isUnread = \!n.read_at;
+      const typeIcon = n.type === 'alert' ? '🔔' : n.type === 'report' ? '📊' : '💬';
+      html += `<div class="notif-card ${isUnread ? 'unread' : ''}" onclick="openNotification('${n.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>${typeIcon} <strong>${escapeHtml(n.title || '通知')}</strong></span>
+          <span style="font-size:11px;color:var(--text-muted);">${getTimeAgo(n.created_at)}</span>
+        </div>
+        <div style="margin-top:6px;font-size:13px;color:var(--text-secondary);line-height:1.5;">${escapeHtml((n.message || '').substring(0, 150))}${(n.message || '').length > 150 ? '...' : ''}</div>
+      </div>`;
+    });
+  }
+  section.innerHTML = html;
+  updateBadge(items);
+}
+
+function getTimeAgo(dateStr) {
+  if (\!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return mins + '分钟前';
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + '小时前';
+  return Math.floor(hours / 24) + '天前';
+}
+
+function updateBadge(items) {
+  const unread = (items || []).filter(n => \!n.read_at).length;
+  const badge = document.getElementById('notifBadge');
+  if (unread > 0) {
+    badge.textContent = unread > 99 ? '99+' : unread;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function openNotification(id) {
+  try {
+    await fetch(WORKER_URL + '/notifications/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    loadTab('notif');
+  } catch (e) { console.log('Mark read failed:', e); }
+}
+
+async function markAllRead() {
+  try {
+    await fetch(WORKER_URL + '/notifications/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true })
+    });
+    loadTab('notif');
+  } catch (e) { console.log('Mark all read failed:', e); }
+}
+
+// ============ 单品管理 v5 ============
+function renderProducts(data) {
+  const section = document.getElementById('productsSection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const items = data.items || data.products || data || [];
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h3 style="color:var(--accent);margin:0;">单品追踪</h3>
+    <div>
+      <button onclick="showProductForm()" style="background:var(--accent);color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;margin-right:8px;">+ 新产品</button>
+      <button onclick="showItemForm()" style="background:var(--accent-blue);color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">+ 场次单品</button>
+    </div>
+  </div>`;
+
+  if (items.length === 0) {
+    html += '<div class="notif-empty">暂无单品数据，请先添加产品或录入场次单品</div>';
+  } else {
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    html += '<thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:10px;color:var(--accent);">商品</th><th style="padding:10px;color:var(--accent);">数量</th><th style="padding:10px;color:var(--accent);">收入</th><th style="padding:10px;color:var(--accent);">成本</th><th style="padding:10px;color:var(--accent);">利润</th></tr></thead><tbody>';
+    items.forEach(item => {
+      const profit = (item.revenue || 0) - (item.cost || 0);
+      const profitColor = profit >= 0 ? 'var(--accent)' : 'var(--accent-red)';
+      html += `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px;">${escapeHtml(item.product_name || item.item_name || '--')}</td>
+        <td style="padding:10px;text-align:center;">${item.quantity || item.qty_sold || '--'}</td>
+        <td style="padding:10px;text-align:center;">$${(item.revenue || item.sale_price || 0).toFixed(2)}</td>
+        <td style="padding:10px;text-align:center;">$${(item.cost || item.cost_price || 0).toFixed(2)}</td>
+        <td style="padding:10px;text-align:center;color:${profitColor};font-weight:600;">$${profit.toFixed(2)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+  section.innerHTML = html;
+}
+
+function showProductForm() {
+  const section = document.getElementById('productsSection');
+  section.innerHTML = `<div style="max-width:500px;margin:0 auto;">
+    <h3 style="color:var(--accent);margin-bottom:16px;">添加产品</h3>
+    <input id="pName" placeholder="产品名称" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="pSKU" placeholder="SKU（可选）" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="pCost" type="number" step="0.01" placeholder="采购成本" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="pPrice" type="number" step="0.01" placeholder="建议售价" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="pCategory" placeholder="品类（如：女鞋、包包）" style="width:100%;padding:10px;margin-bottom:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <button onclick="saveProduct()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;">保存</button>
+    <button onclick="loadTab('products')" style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;margin-top:8px;">取消</button>
+  </div>`;
+}
+
+async function saveProduct() {
+  const data = {
+    name: document.getElementById('pName').value.trim(),
+    sku: document.getElementById('pSKU').value.trim(),
+    cost_price: parseFloat(document.getElementById('pCost').value) || 0,
+    sell_price: parseFloat(document.getElementById('pPrice').value) || 0,
+    category: document.getElementById('pCategory').value.trim()
+  };
+  if (\!data.name) { alert('请输入产品名称'); return; }
+  try {
+    await fetch(WORKER_URL + '/products', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    loadTab('products');
+  } catch (e) { alert('保存失败: ' + e.message); }
+}
+
+function showItemForm() {
+  const section = document.getElementById('productsSection');
+  section.innerHTML = `<div style="max-width:500px;margin:0 auto;">
+    <h3 style="color:var(--accent);margin-bottom:16px;">录入场次单品</h3>
+    <input id="siName" placeholder="商品名称" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="siQty" type="number" placeholder="售出数量" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="siRevenue" type="number" step="0.01" placeholder="销售收入" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="siCost" type="number" step="0.01" placeholder="成本" style="width:100%;padding:10px;margin-bottom:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <button onclick="saveShowItem()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;">保存</button>
+    <button onclick="loadTab('products')" style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;margin-top:8px;">取消</button>
+  </div>`;
+}
+
+async function saveShowItem() {
+  const data = {
+    item_name: document.getElementById('siName').value.trim(),
+    qty_sold: parseInt(document.getElementById('siQty').value) || 0,
+    revenue: parseFloat(document.getElementById('siRevenue').value) || 0,
+    cost: parseFloat(document.getElementById('siCost').value) || 0
+  };
+  if (\!data.item_name) { alert('请输入商品名称'); return; }
+  try {
+    await fetch(WORKER_URL + '/show-items', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    loadTab('products');
+  } catch (e) { alert('保存失败: ' + e.message); }
+}
+
+// ============ 库存管理 v5 ============
+function renderInventory(data) {
+  const section = document.getElementById('inventorySection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const items = data.inventory || data.items || data || [];
+  const summary = data.summary || {};
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h3 style="color:var(--accent);margin:0;">库存管理</h3>
+    <button onclick="showInventoryForm()" style="background:var(--accent);color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">+ 录入库存</button>
+  </div>`;
+
+  if (summary.total_items \!== undefined) {
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg-card);padding:12px;border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);">总SKU</div>
+        <div style="font-size:20px;font-weight:700;color:var(--accent);">${summary.total_items || 0}</div>
+      </div>
+      <div style="background:var(--bg-card);padding:12px;border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);">总库存</div>
+        <div style="font-size:20px;font-weight:700;color:var(--accent-blue);">${summary.total_quantity || 0}</div>
+      </div>
+      <div style="background:var(--bg-card);padding:12px;border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);">需补货</div>
+        <div style="font-size:20px;font-weight:700;color:var(--accent-red);">${summary.low_stock || 0}</div>
+      </div>
+    </div>`;
+  }
+
+  if (Array.isArray(items) && items.length > 0) {
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    html += '<thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:10px;color:var(--accent);">商品</th><th style="padding:10px;color:var(--accent);">库存</th><th style="padding:10px;color:var(--accent);">状态</th></tr></thead><tbody>';
+    items.forEach(item => {
+      const status = item.status || (item.quantity <= (item.reorder_point || 5) ? '需补货' : '正常');
+      const statusColor = status === '需补货' || status === 'low' ? 'var(--accent-red)' : status === '滞销' || status === 'dead' ? 'var(--accent-yellow)' : 'var(--accent)';
+      html += `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px;">${escapeHtml(item.product_name || item.name || '--')}</td>
+        <td style="padding:10px;text-align:center;">${item.quantity ?? '--'}</td>
+        <td style="padding:10px;text-align:center;color:${statusColor};font-weight:600;">${status}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+  } else {
+    html += '<div class="notif-empty">暂无库存数据</div>';
+  }
+  section.innerHTML = html;
+}
+
+function showInventoryForm() {
+  const section = document.getElementById('inventorySection');
+  section.innerHTML = `<div style="max-width:500px;margin:0 auto;">
+    <h3 style="color:var(--accent);margin-bottom:16px;">录入库存</h3>
+    <input id="invName" placeholder="产品名称" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="invSKU" placeholder="SKU（可选）" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="invQty" type="number" placeholder="库存数量" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <input id="invReorder" type="number" placeholder="补货点（默认5）" style="width:100%;padding:10px;margin-bottom:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);">
+    <button onclick="saveInventory()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;">保存</button>
+    <button onclick="loadTab('inventory')" style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;margin-top:8px;">取消</button>
+  </div>`;
+}
+
+async function saveInventory() {
+  const data = {
+    action: 'create',
+    product_name: document.getElementById('invName').value.trim(),
+    sku: document.getElementById('invSKU').value.trim(),
+    quantity: parseInt(document.getElementById('invQty').value) || 0,
+    reorder_point: parseInt(document.getElementById('invReorder').value) || 5
+  };
+  if (\!data.product_name) { alert('请输入产品名称'); return; }
+  try {
+    await fetch(WORKER_URL + '/inventory', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    loadTab('inventory');
+  } catch (e) { alert('保存失败: ' + e.message); }
+}
+
+// ============ CSV导入 v5 ============
+function loadCSVFile() {
+  const fileInput = document.getElementById('csvFileInput');
+  if (\!fileInput || \!fileInput.files[0]) { alert('请先选择CSV文件'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('csvPreview').textContent = e.target.result.substring(0, 500) + (e.target.result.length > 500 ? '\n...' : '');
+    document.getElementById('csvPreview').style.display = 'block';
+    document.getElementById('csvData').value = e.target.result;
+  };
+  reader.readAsText(fileInput.files[0]);
+}
+
+async function doImport() {
+  const csvData = document.getElementById('csvData')?.value;
+  const platform = document.getElementById('platformSelect')?.value || 'auto';
+  if (\!csvData) { alert('请先加载CSV文件'); return; }
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '导入中...';
+
+  try {
+    const res = await fetch(WORKER_URL + '/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv_data: csvData, platform })
+    });
+    const result = await res.json();
+    if (result.error) {
+      alert('导入失败: ' + result.error);
+    } else {
+      alert('导入成功！共导入 ' + (result.imported || 0) + ' 条记录');
+    }
+  } catch (e) {
+    alert('导入失败: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '开始导入';
+}
+
+// ============ 键盘快捷键 ============
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+// 支持粘贴图片
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (\!items) return;
+  for (let item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      const fakeEvent = { target: { files: [file] } };
+      handleImageSelect(fakeEvent);
+      break;
+    }
+  }
+});
+
+// ============ 初始化 ============
+document.getElementById('pwdInput').focus();
+</script>
+</body>
+</html>
