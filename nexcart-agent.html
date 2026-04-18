@@ -1207,9 +1207,9 @@ function removeImage() {
 async function sendMessage() {
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
-  const hasImage = \!\!pendingImage;
+  const hasImage = !!pendingImage;
 
-  if (\!text && \!hasImage) return;
+  if (!text && !hasImage) return;
   if (isLoading) return;
 
   isLoading = true;
@@ -1415,7 +1415,7 @@ function showErrorBanner(msg) {
 
 // ============ 输入交互 ============
 function handleKey(e) {
-  if (e.key === 'Enter' && \!e.shiftKey) {
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
@@ -1459,7 +1459,7 @@ function renderNotifications(data) {
     html += '<div class="notif-empty">暂无通知</div>';
   } else {
     items.forEach(n => {
-      const isUnread = \!n.read_at;
+      const isUnread = !n.read_at;
       const typeIcon = n.type === 'alert' ? '🔔' : n.type === 'report' ? '📊' : '💬';
       html += `<div class="notif-card ${isUnread ? 'unread' : ''}" onclick="openNotification('${n.id}')">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1475,7 +1475,7 @@ function renderNotifications(data) {
 }
 
 function getTimeAgo(dateStr) {
-  if (\!dateStr) return '';
+  if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return mins + '分钟前';
@@ -1485,7 +1485,7 @@ function getTimeAgo(dateStr) {
 }
 
 function updateBadge(items) {
-  const unread = (items || []).filter(n => \!n.read_at).length;
+  const unread = (items || []).filter(n => !n.read_at).length;
   const badge = document.getElementById('notifBadge');
   if (unread > 0) {
     badge.textContent = unread > 99 ? '99+' : unread;
@@ -1576,7 +1576,7 @@ async function saveProduct() {
     sell_price: parseFloat(document.getElementById('pPrice').value) || 0,
     category: document.getElementById('pCategory').value.trim()
   };
-  if (\!data.name) { alert('请输入产品名称'); return; }
+  if (!data.name) { alert('请输入产品名称'); return; }
   try {
     await fetch(WORKER_URL + '/products', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1606,7 +1606,7 @@ async function saveShowItem() {
     revenue: parseFloat(document.getElementById('siRevenue').value) || 0,
     cost: parseFloat(document.getElementById('siCost').value) || 0
   };
-  if (\!data.item_name) { alert('请输入商品名称'); return; }
+  if (!data.item_name) { alert('请输入商品名称'); return; }
   try {
     await fetch(WORKER_URL + '/show-items', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1630,7 +1630,7 @@ function renderInventory(data) {
     <button onclick="showInventoryForm()" style="background:var(--accent);color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">+ 录入库存</button>
   </div>`;
 
-  if (summary.total_items \!== undefined) {
+  if (summary.total_items !== undefined) {
     html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
       <div style="background:var(--bg-card);padding:12px;border-radius:10px;text-align:center;">
         <div style="font-size:11px;color:var(--text-muted);">总SKU</div>
@@ -1687,7 +1687,7 @@ async function saveInventory() {
     quantity: parseInt(document.getElementById('invQty').value) || 0,
     reorder_point: parseInt(document.getElementById('invReorder').value) || 5
   };
-  if (\!data.product_name) { alert('请输入产品名称'); return; }
+  if (!data.product_name) { alert('请输入产品名称'); return; }
   try {
     await fetch(WORKER_URL + '/inventory', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1700,7 +1700,7 @@ async function saveInventory() {
 // ============ CSV导入 v5 ============
 function loadCSVFile() {
   const fileInput = document.getElementById('csvFileInput');
-  if (\!fileInput || \!fileInput.files[0]) { alert('请先选择CSV文件'); return; }
+  if (!fileInput || !fileInput.files[0]) { alert('请先选择CSV文件'); return; }
   const reader = new FileReader();
   reader.onload = function(e) {
     document.getElementById('csvPreview').textContent = e.target.result.substring(0, 500) + (e.target.result.length > 500 ? '\n...' : '');
@@ -1713,7 +1713,7 @@ function loadCSVFile() {
 async function doImport() {
   const csvData = document.getElementById('csvData')?.value;
   const platform = document.getElementById('platformSelect')?.value || 'auto';
-  if (\!csvData) { alert('请先加载CSV文件'); return; }
+  if (!csvData) { alert('请先加载CSV文件'); return; }
 
   const btn = event.target;
   btn.disabled = true;
@@ -1746,7 +1746,7 @@ document.addEventListener('keydown', (e) => {
 // 支持粘贴图片
 document.addEventListener('paste', (e) => {
   const items = e.clipboardData?.items;
-  if (\!items) return;
+  if (!items) return;
   for (let item of items) {
     if (item.type.startsWith('image/')) {
       e.preventDefault();
