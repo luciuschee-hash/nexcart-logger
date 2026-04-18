@@ -200,6 +200,7 @@
     display: flex;
     opacity: 1; transform: translateX(0);
     position: relative;
+    overflow-y: auto;
   }
 
   /* ====== 聊天区域 ====== */
@@ -974,6 +975,14 @@ function renderAlerts(data) {
   grid.style.display = 'grid';
 
   const alerts = data.alerts || [];
+  if (alerts.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--text-muted);">
+      <div style="font-size:36px;margin-bottom:12px;">✅</div>
+      <div style="font-size:14px;">暂无预警，所有指标正常</div>
+      <div style="font-size:11px;margin-top:6px;">检查时间: ${data.checked_at ? new Date(data.checked_at).toLocaleString('zh-CN') : '-'}</div>
+    </div>`;
+    return;
+  }
   alerts.forEach(alert => {
     const severity = alert.severity || 'ok';
     const severityClass = severity === 'critical' ? 'critical' : severity === 'warning' ? 'warning' : '';
@@ -1003,9 +1012,9 @@ function renderCosts(data) {
   section.innerHTML = '';
   section.style.display = 'block';
 
-  const total = data.totalCost || 0;
+  const total = parseFloat(data.total_cost_usd) || 0;
   const daily = data.daily || [];
-  const models = data.models || [];
+  const models = data.by_model || [];
 
   // 总成本
   const totalHtml = `
@@ -1018,14 +1027,15 @@ function renderCosts(data) {
 
   // 日成本图表
   let dailyHtml = '<div class="cost-chart"><div class="chart-title">日均成本趋势</div>';
-  const maxDaily = Math.max(...daily.map(d => parseFloat(d.cost) || 0), 1);
+  const maxDaily = Math.max(...daily.map(d => parseFloat(d.cost_usd || d.cost) || 0), 1);
   daily.forEach(item => {
-    const percent = (parseFloat(item.cost) / maxDaily) * 100;
+    const costVal = parseFloat(item.cost_usd || item.cost) || 0;
+    const percent = (costVal / maxDaily) * 100;
     dailyHtml += `
       <div class="bar-item">
         <div class="bar-label">${item.date}</div>
         <div class="bar-container"><div class="bar-fill" style="width: ${percent}%"></div></div>
-        <div class="bar-value">$${parseFloat(item.cost).toFixed(2)}</div>
+        <div class="bar-value">$${costVal.toFixed(2)}</div>
       </div>
     `;
   });
@@ -1033,14 +1043,15 @@ function renderCosts(data) {
 
   // 模型分布
   let modelsHtml = '<div class="cost-chart"><div class="chart-title">模型使用分布</div>';
-  const maxModel = Math.max(...models.map(m => parseFloat(m.cost) || 0), 1);
+  const maxModel = Math.max(...models.map(m => parseFloat(m.total_cost || m.cost) || 0), 1);
   models.forEach(item => {
-    const percent = (parseFloat(item.cost) / maxModel) * 100;
+    const modelCost = parseFloat(item.total_cost || item.cost) || 0;
+    const percent = (modelCost / maxModel) * 100;
     modelsHtml += `
       <div class="bar-item">
         <div class="bar-label">${item.model}</div>
         <div class="bar-container"><div class="bar-fill" style="width: ${percent}%"></div></div>
-        <div class="bar-value">$${parseFloat(item.cost).toFixed(2)}</div>
+        <div class="bar-value">$${modelCost.toFixed(2)}</div>
       </div>
     `;
   });
@@ -1055,40 +1066,41 @@ function renderCustomers(data) {
   section.style.display = 'block';
 
   const overview = data.overview || {};
-  const trend = data.trend || [];
+  const trend = data.monthly_trend || data.trend || [];
 
   // 概览卡片
   let overviewHtml = '<div class="overview-cards">';
   overviewHtml += `
     <div class="overview-card">
-      <div class="overview-value">${overview.totalBuyers || 0}</div>
+      <div class="overview-value">${overview.total_cumulative_buyers || overview.totalBuyers || 0}</div>
       <div class="overview-label">总买家数</div>
     </div>
     <div class="overview-card">
-      <div class="overview-value">${(overview.repeatRate || 0).toFixed(1)}%</div>
+      <div class="overview-value">${overview.repeat_rate || ((overview.repeatRate || 0) + '%')}</div>
       <div class="overview-label">复购率</div>
     </div>
     <div class="overview-card">
-      <div class="overview-value">$${(overview.ltv || 0).toFixed(2)}</div>
+      <div class="overview-value">$${parseFloat(overview.estimated_ltv || overview.ltv || 0).toFixed(2)}</div>
       <div class="overview-label">生命周期价值</div>
     </div>
     <div class="overview-card">
-      <div class="overview-value">$${(overview.aov || 0).toFixed(2)}</div>
+      <div class="overview-value">$${parseFloat(overview.avg_aov || overview.aov || 0).toFixed(2)}</div>
       <div class="overview-label">平均订单值</div>
     </div>
   `;
   overviewHtml += '</div>';
 
   // 月度趋势
-  let trendHtml = '<div class="cost-chart"><div class="chart-title">月度趋势</div>';
-  const maxTrend = Math.max(...trend.map(t => parseFloat(t.count) || 0), 1);
+  let trendHtml = '<div class="cost-chart"><div class="chart-title">月度买家趋势</div>';
+  const maxTrend = Math.max(...trend.map(t => parseFloat(t.total_buyers || t.count) || 0), 1);
   trend.forEach(item => {
-    const percent = (parseFloat(item.count) / maxTrend) * 100;
+    const buyers = parseFloat(item.total_buyers || item.count) || 0;
+    const percent = (buyers / maxTrend) * 100;
     trendHtml += `
       <div class="bar-item">
         <div class="bar-label">${item.month}</div>
         <div class="bar-container"><div class="bar-fill" style="width: ${percent}%"></div></div>
-        <div class="bar-value">${item.count}</div>
+        <div class="bar-value">${buyers}</div>
       </div>
     `;
   });
@@ -1102,55 +1114,69 @@ function renderReport(data) {
   section.innerHTML = '';
   section.style.display = 'block';
 
-  const report = data.report || {};
+  const period = data.period || '本周';
+  const reportType = data.report_type === 'weekly' ? '周度经营报告' : '经营报告';
+  const summary = data.summary || {};
+  const vs = data.vs_previous || {};
+  const highlights = data.highlights || {};
 
   // 报告头
   let html = `
     <div class="report-header">
-      <div class="report-date">${report.dateRange || '本周'}</div>
-      <div class="report-title">${report.title || '周度经营报告'}</div>
+      <div class="report-date">${period}</div>
+      <div class="report-title">${reportType}</div>
     </div>
   `;
 
-  // 关键指标
-  const metrics = report.metrics || [];
-  html += '<div class="metrics-grid">';
-  metrics.forEach(metric => {
-    html += `
-      <div class="metric-card">
-        <div class="metric-value">${metric.value}</div>
-        <div class="metric-label">${metric.label}</div>
-      </div>
-    `;
+  // 关键指标 — 从 summary 构建
+  html += '<div class="overview-cards">';
+  const metricItems = [
+    { label: '总场次', value: summary.total_shows || 0 },
+    { label: '总营收', value: '$' + (parseFloat(summary.total_earnings) || 0).toFixed(0) },
+    { label: '总毛利', value: '$' + (parseFloat(summary.total_profit) || 0).toFixed(0) },
+    { label: '平均毛利率', value: summary.avg_margin || '0%' },
+    { label: '总买家', value: summary.total_buyers || 0 },
+    { label: '新客率', value: summary.first_time_rate || '0%' },
+    { label: '客单价', value: '$' + (parseFloat(summary.avg_aov) || 0).toFixed(2) }
+  ];
+  metricItems.forEach(m => {
+    html += `<div class="overview-card"><div class="overview-value">${m.value}</div><div class="overview-label">${m.label}</div></div>`;
   });
   html += '</div>';
 
+  // 环比变化
+  if (vs.prev_period) {
+    html += '<div class="cost-chart"><div class="chart-title">环比变化 vs ' + vs.prev_period + '</div>';
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">';
+    const changes = [
+      { label: '场次', value: vs.prev_shows + ' → ' + (summary.total_shows || 0) },
+      { label: '营收变化', value: vs.earnings_change || '-' },
+      { label: '买家变化', value: vs.buyers_change || '-' },
+      { label: '利润变化', value: vs.profit_change || '-' }
+    ];
+    changes.forEach(c => {
+      const isNeg = String(c.value).startsWith('-');
+      html += `<div style="background:var(--card-bg);border-radius:8px;padding:8px 14px;"><div style="font-size:11px;color:var(--text-muted);">${c.label}</div><div style="font-size:14px;font-weight:600;color:${isNeg ? '#f87171' : '#4ade80'};">${c.value}</div></div>`;
+    });
+    html += '</div></div>';
+  }
+
   // 最佳/最差场次
-  if (report.bestShow || report.worstShow) {
+  if (highlights.best_show || highlights.worst_show) {
     html += '<div class="shows-list">';
     html += '<div style="font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">场次表现</div>';
-    if (report.bestShow) {
-      html += `
-        <div class="show-item">
-          <div class="show-name">🏆 ${report.bestShow.name}</div>
-          <div class="show-revenue">${report.bestShow.revenue}</div>
-        </div>
-      `;
+    if (highlights.best_show) {
+      html += `<div class="show-item"><div class="show-name">🏆 最佳: ${highlights.best_show.date}</div><div class="show-revenue">$${highlights.best_show.earnings} | ${highlights.best_show.buyers}人</div></div>`;
     }
-    if (report.worstShow) {
-      html += `
-        <div class="show-item">
-          <div class="show-name">📉 ${report.worstShow.name}</div>
-          <div class="show-revenue">${report.worstShow.revenue}</div>
-        </div>
-      `;
+    if (highlights.worst_show) {
+      html += `<div class="show-item"><div class="show-name">📉 最差: ${highlights.worst_show.date}</div><div class="show-revenue">$${highlights.worst_show.earnings} | ${highlights.worst_show.buyers}人</div></div>`;
     }
     html += '</div>';
   }
 
-  // AI 摘要
-  if (report.summary) {
-    html += `<div class="summary-text">${report.summary}</div>`;
+  // AI 摘要 — 渲染 Markdown
+  if (data.ai_summary) {
+    html += `<div class="summary-text" style="white-space:pre-wrap;line-height:1.7;padding:16px;background:var(--card-bg);border-radius:12px;margin-top:12px;">${formatMarkdown(data.ai_summary)}</div>`;
   }
 
   section.innerHTML = html;
@@ -1161,8 +1187,8 @@ function renderRecommend(data) {
   section.innerHTML = '';
   section.style.display = 'block';
 
-  const recommendation = data.recommendation || '';
-  section.innerHTML = `<div class="recommend-card">${escapeHtml(recommendation).replace(/\n/g, '<br>')}</div>`;
+  const recommendation = data.ai_recommendation || data.recommendation || '';
+  section.innerHTML = `<div class="recommend-card" style="line-height:1.7;">${formatMarkdown(recommendation)}</div>`;
 }
 
 // ============ 图片处理 ============
