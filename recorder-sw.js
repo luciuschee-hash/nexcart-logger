@@ -2,7 +2,7 @@
 // Version-aware cache. Bumping the VERSION constant invalidates all old caches.
 // 部署时如果改了 recorder.html 大版本，记得把这里 VERSION 加 1。
 
-const VERSION = 'recorder-v3-0-0';
+const VERSION = 'recorder-v3-0-1';
 const ASSETS = [
   './recorder.html',
 ];

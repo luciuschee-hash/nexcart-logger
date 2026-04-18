@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="直播记录">
 <meta name="theme-color" content="#1D9E75">
-<meta name="version" content="3.0.0">
+<meta name="version" content="3.0.1">
 <title>直播成交记录 · Nexcart Ops</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -357,7 +357,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 // ============================================================
 const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
 const PASSWORD_STORAGE_KEY = 'nexcart_pwd';
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '3.0.1';
 
 // ============================================================
 // Login gate
@@ -454,14 +454,16 @@ var undoStack = [];      // list of last 5 saved records (in-memory)
 var editingId = null;    // when modal is editing an existing row
 
 // ============================================================
-// Session ID = YYYYMMDD_Platform (persistent for the day)
+// Session ID = YYYYMMDD_Platform — date is in Pacific Time
+// (so a late-night PT show doesn't roll over to the next day)
 // ============================================================
 function computeSessionId(plat) {
-  var d = new Date();
-  var s = d.getFullYear().toString()
-        + String(d.getMonth()+1).padStart(2,'0')
-        + String(d.getDate()).padStart(2,'0');
-  return s + '_' + plat.replace(/\s+/g, '');
+  // 'en-CA' formats as YYYY-MM-DD; strip the dashes
+  var ptDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date()).replace(/-/g, '');
+  return ptDate + '_' + plat.replace(/\s+/g, '');
 }
 
 // ============================================================
