@@ -188,6 +188,7 @@
   /* ====== 内容容器 ====== */
   .tabs-content {
     flex: 1; overflow: hidden; position: relative;
+    min-height: 0;
   }
 
   .tab-content {
@@ -199,7 +200,7 @@
   .tab-content.active {
     display: flex;
     opacity: 1; transform: translateX(0);
-    position: relative;
+    position: absolute; inset: 0;
     overflow-y: auto;
   }
 
