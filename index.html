@@ -465,36 +465,64 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://awxjvoqhlefxosbzegws.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3eGp2b3FobGVmeG9zYnplZ3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzAzMTQsImV4cCI6MjA5MDk0NjMxNH0.Dfutb1IOiajLgoFQnSzcnxPqJ4VTf1sGIZGslB7gkig';
+// v3 安全加固：所有读写走 Cloudflare Worker，Supabase 密钥不再出现在前端
+const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
 
 const WIN_LOSS_TAGS = ['选品', '话术', '节奏', '价格', '流量', '气氛', '库存', '运气', '其他'];
 const QUEUE_KEY = 'nx_pending_queue_v2';
+const PWD_KEY = 'nx_pwd_v3';
+
+// ============ Worker 调用助手 ============
+async function workerFetch(path, { method = 'GET', body, params } = {}) {
+  const pwd = sessionStorage.getItem(PWD_KEY) || '';
+  let url = WORKER_URL + path;
+  if (params) {
+    const q = new URLSearchParams(params).toString();
+    if (q) url += '?' + q;
+  }
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Password': pwd },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  let data = null;
+  try { data = await res.json(); } catch(_) {}
+  if (res.status === 401) {
+    sessionStorage.removeItem(PWD_KEY);
+    throw new Error('AUTH_FAIL');
+  }
+  return { ok: res.ok, status: res.status, data };
+}
 
 // ============ 锁屏 ============
-function simpleHash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
-  return Math.abs(h).toString(16).padStart(8, '0');
-}
-const CORRECT_HASH = simpleHash('nexcart2026');
-
-function checkPassword() {
+async function checkPassword() {
   const val = document.getElementById('lock-input').value;
-  if (simpleHash(val) === CORRECT_HASH) {
-    sessionStorage.setItem('nx_auth', CORRECT_HASH);
-    document.getElementById('lock-screen').style.display = 'none';
-    document.getElementById('main-content').classList.remove('hidden');
-    init();
-  } else {
+  const btn = document.querySelector('.lock-btn');
+  btn.disabled = true; btn.textContent = '验证中...';
+  sessionStorage.setItem(PWD_KEY, val);
+  try {
+    const { ok } = await workerFetch('/shows-list', { params: { limit: 1 } });
+    if (ok) {
+      document.getElementById('lock-screen').style.display = 'none';
+      document.getElementById('main-content').classList.remove('hidden');
+      init();
+    } else {
+      throw new Error('bad_pwd');
+    }
+  } catch (_) {
+    sessionStorage.removeItem(PWD_KEY);
     const inp = document.getElementById('lock-input');
     inp.classList.add('shake'); inp.value = '';
-    document.getElementById('lock-error').textContent = '密码错误，请重试';
-    setTimeout(() => { inp.classList.remove('shake'); document.getElementById('lock-error').textContent = ''; }, 1000);
+    document.getElementById('lock-error').textContent = '密码错误或服务器无法连接';
+    setTimeout(() => { inp.classList.remove('shake'); document.getElementById('lock-error').textContent = ''; }, 1500);
+  } finally {
+    btn.disabled = false; btn.textContent = '进入 →';
   }
 }
 
-if (sessionStorage.getItem('nx_auth') === CORRECT_HASH) {
+// Auto-unlock if password cached this session
+if (sessionStorage.getItem(PWD_KEY)) {
   document.getElementById('lock-screen').style.display = 'none';
   document.getElementById('main-content').classList.remove('hidden');
   window.addEventListener('DOMContentLoaded', init);
@@ -731,31 +759,19 @@ async function submitShow() {
   btn.innerHTML = '<span class="spinner"></span>';
 
   try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/shows', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
+    const { ok, status, data } = await workerFetch('/shows-entry', { method: 'POST', body: payload });
+    if (ok) {
       showToast('已保存到数据库');
       resetForm();
       loadRecent();
+    } else if (status === 409) {
+      showToast('这个场次已经录过了（同一天 + 平台 + 场次号）', 'error');
     } else {
-      const err = await res.json().catch(() => ({}));
-      const msg = err.message || '';
-      if (res.status === 409 || /duplicate|unique/i.test(msg)) {
-        showToast('这个场次已经录过了（同一天 + 平台 + 场次号）', 'error');
-      } else {
-        queueForRetry(payload);
-        showToast('保存失败已离线排队，稍后自动重试', 'error');
-      }
+      queueForRetry(payload);
+      showToast('保存失败已离线排队，稍后自动重试', 'error');
     }
   } catch (e) {
+    if (e.message === 'AUTH_FAIL') { showToast('登录已过期，请刷新页面重新登录', 'error'); return; }
     queueForRetry(payload);
     showToast('网络错误，已离线排队', 'error');
   } finally {
@@ -809,12 +825,8 @@ async function flushQueue() {
   const remaining = [];
   for (const item of q) {
     try {
-      const res = await fetch(SUPABASE_URL + '/rest/v1/shows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
-        body: JSON.stringify(item.payload),
-      });
-      if (!res.ok && res.status !== 409) remaining.push(item);
+      const { ok, status } = await workerFetch('/shows-entry', { method: 'POST', body: item.payload });
+      if (!ok && status !== 409) remaining.push(item);
     } catch (_) { remaining.push(item); }
   }
   localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
@@ -830,17 +842,14 @@ let editingRow = null;
 
 async function loadRecent() {
   try {
-    const res = await fetch(
-      SUPABASE_URL + '/rest/v1/shows?select=*&order=show_date.desc,session_no.desc&limit=8',
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    const data = await res.json();
+    const { ok, data } = await workerFetch('/shows-list', { params: { limit: 8 } });
+    const shows = (ok && data && Array.isArray(data.shows)) ? data.shows : [];
     const el = document.getElementById('recent-list');
-    if (!Array.isArray(data) || !data.length) {
+    if (!shows.length) {
       el.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);padding:16px 0">暂无记录</div>';
       return;
     }
-    el.innerHTML = data.map(s => {
+    el.innerHTML = shows.map(s => {
       const profit = parseFloat(s.gross_profit) || 0;
       const earnings = parseFloat(s.earnings) || 0;
       const margin = earnings > 0 ? (profit / earnings * 100).toFixed(0) : '—';
@@ -909,27 +918,26 @@ async function saveEdit() {
     voice_memo_text: document.getElementById('e_voice_memo_text').value || null,
   };
   try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/shows?id=eq.' + editingRow.id, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
-      body: JSON.stringify(updates),
-    });
-    if (res.ok) { showToast('已更新'); closeEdit(); loadRecent(); }
+    const { ok } = await workerFetch('/shows-update', { method: 'POST', body: { id: editingRow.id, ...updates } });
+    if (ok) { showToast('已更新'); closeEdit(); loadRecent(); }
     else { showToast('更新失败', 'error'); }
-  } catch (_) { showToast('网络错误', 'error'); }
+  } catch (e) {
+    if (e.message === 'AUTH_FAIL') showToast('登录已过期，请刷新', 'error');
+    else showToast('网络错误', 'error');
+  }
 }
 
 async function deleteRecord() {
   if (!editingRow) return;
   if (!confirm('确定删除 ' + editingRow.show_date + ' 这场记录？')) return;
   try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/shows?id=eq.' + editingRow.id, {
-      method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
-    });
-    if (res.ok) { showToast('已删除'); closeEdit(); loadRecent(); }
+    const { ok } = await workerFetch('/shows-delete', { method: 'POST', body: { id: editingRow.id } });
+    if (ok) { showToast('已删除'); closeEdit(); loadRecent(); }
     else { showToast('删除失败', 'error'); }
-  } catch (_) { showToast('网络错误', 'error'); }
+  } catch (e) {
+    if (e.message === 'AUTH_FAIL') showToast('登录已过期，请刷新', 'error');
+    else showToast('网络错误', 'error');
+  }
 }
 </script>
 </body>
