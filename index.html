@@ -3,63 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>直播复盘录入</title>
+<title>直播复盘录入 · v2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0a0a0a;
     --surface: #111111;
+    --surface-2: #161616;
     --border: #222222;
     --border-light: #2a2a2a;
     --accent: #00e5a0;
     --accent-dim: rgba(0,229,160,0.12);
+    --warn: #ffb347;
+    --warn-dim: rgba(255,179,71,0.12);
     --text: #f0f0f0;
-    --text-muted: #666;
+    --text-muted: #888;
     --text-dim: #444;
     --danger: #ff4d4d;
+    --danger-dim: rgba(255,77,77,0.12);
     --mono: 'DM Mono', monospace;
     --sans: 'Syne', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 16px 80px;
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    min-height: 100vh; display: flex; align-items: flex-start; justify-content: center;
+    padding: 32px 16px 80px;
   }
-  .container { width: 100%; max-width: 540px; }
-  .header { margin-bottom: 40px; }
+  .container { width: 100%; max-width: 560px; }
+  .header { margin-bottom: 32px; }
   .header-label { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; }
   .header h1 { font-size: 28px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
   .header .date-display { font-family: var(--mono); font-size: 12px; color: var(--text-muted); margin-top: 8px; }
-  .section { margin-bottom: 32px; }
-  .section-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .section { margin-bottom: 28px; }
+  .section-label {
+    font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-label .hint { color: var(--text-dim); font-size: 9px; font-weight: 400; letter-spacing: 0.08em; }
+  .section.ai-boost { border: 1px solid var(--accent-dim); border-radius: 10px; padding: 16px 16px 4px; margin-left: -16px; margin-right: -16px; }
+  .section.ai-boost .section-label { border-bottom-color: var(--accent-dim); color: var(--accent); }
   .field { margin-bottom: 16px; }
   .field label { display: block; font-size: 12px; color: var(--text-muted); font-family: var(--mono); margin-bottom: 6px; letter-spacing: 0.05em; }
-  .field input, .field select {
+  .field input, .field select, .field textarea {
     width: 100%; background: var(--surface); border: 1px solid var(--border);
     color: var(--text); font-family: var(--mono); font-size: 15px;
     padding: 12px 14px; border-radius: 6px; outline: none;
     transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none;
   }
-  .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .field textarea { resize: vertical; min-height: 70px; font-size: 14px; line-height: 1.5; }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+  }
   .field select {
     cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
   }
-  .platform-toggle { display: flex; gap: 8px; }
-  .platform-btn {
-    flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 6px;
+  .date-row { display: flex; gap: 8px; align-items: stretch; }
+  .date-row input { flex: 1; }
+  .quick-btn {
+    padding: 0 14px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--text-muted); font-family: var(--mono);
+    font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .quick-btn:hover, .quick-btn.active {
+    border-color: var(--accent); color: var(--accent); background: var(--accent-dim);
+  }
+  .platform-toggle, .session-toggle { display: flex; gap: 8px; }
+  .platform-btn, .session-btn {
+    flex: 1; padding: 11px; border: 1px solid var(--border); border-radius: 6px;
     background: var(--surface); color: var(--text-muted); font-family: var(--mono);
     font-size: 13px; cursor: pointer; transition: all 0.15s; text-align: center;
   }
-  .platform-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .platform-btn.active, .session-btn.active {
+    border-color: var(--accent); background: var(--accent-dim); color: var(--accent);
+  }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .computed-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px; background: var(--surface); border: 1px solid var(--border);
@@ -70,6 +93,50 @@
   .computed-row .value.positive { color: var(--accent); }
   .computed-row .value.negative { color: var(--danger); }
   .computed-row .value.neutral { color: var(--text-muted); }
+
+  /* Vibe slider */
+  .vibe-row { display: flex; gap: 8px; }
+  .vibe-btn {
+    flex: 1; padding: 14px 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--text-muted); font-family: var(--sans);
+    font-size: 14px; cursor: pointer; text-align: center; transition: all 0.15s;
+  }
+  .vibe-btn .emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+  .vibe-btn[data-v="cold"].active { border-color: #4da3ff; color: #4da3ff; background: rgba(77,163,255,0.12); }
+  .vibe-btn[data-v="warm"].active { border-color: var(--warn); color: var(--warn); background: var(--warn-dim); }
+  .vibe-btn[data-v="hot"].active  { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); }
+
+  /* Confidence stars */
+  .stars { display: flex; gap: 6px; }
+  .star {
+    flex: 1; padding: 10px 4px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--text-dim); font-size: 20px;
+    cursor: pointer; text-align: center; transition: all 0.1s;
+  }
+  .star.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* Win/Loss rows */
+  .wl-row {
+    display: grid; grid-template-columns: 110px 1fr; gap: 8px; margin-bottom: 8px;
+  }
+  .wl-row select, .wl-row input { font-size: 13px; padding: 10px 12px; }
+  .wl-row select { background-position: right 10px center; padding-right: 28px; }
+
+  /* Voice recorder */
+  .voice-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .voice-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .voice-btn {
+    padding: 10px 16px; border: 1px solid var(--accent); border-radius: 6px;
+    background: var(--accent-dim); color: var(--accent); font-family: var(--mono);
+    font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .voice-btn.recording { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); animation: pulse 1.2s infinite; }
+  .voice-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .voice-status { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .voice-textarea { width: 100%; min-height: 80px; background: transparent; border: none; color: var(--text);
+                    font-family: var(--mono); font-size: 13px; line-height: 1.6; outline: none; resize: vertical; }
+
   .submit-btn {
     width: 100%; padding: 16px; background: var(--accent); color: #000;
     border: none; border-radius: 6px; font-family: var(--sans); font-size: 15px;
@@ -79,6 +146,7 @@
   .submit-btn:hover { opacity: 0.9; }
   .submit-btn:active { transform: scale(0.99); }
   .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
   .toast {
     position: fixed; bottom: 24px; left: 50%;
     transform: translateX(-50%) translateY(80px);
@@ -90,69 +158,66 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
   .toast.success { border-color: var(--accent); color: var(--accent); }
   .toast.error { border-color: var(--danger); color: var(--danger); }
-  .recent-shows { margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--border); }
-  .show-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px;
+
+  /* Pending queue banner */
+  .queue-banner {
+    background: var(--warn-dim); border: 1px solid var(--warn); border-radius: 6px;
+    padding: 10px 14px; margin-bottom: 20px; display: none;
+    font-family: var(--mono); font-size: 12px; color: var(--warn);
+    justify-content: space-between; align-items: center;
   }
-  .show-row .show-date { color: var(--text-muted); min-width: 90px; }
-  .show-row .show-platform { color: var(--text-dim); font-size: 11px; padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 3px; }
-  .show-row .show-earnings { color: var(--text-muted); }
-  .show-row .show-profit { color: var(--accent); }
+  .queue-banner.show { display: flex; }
+  .queue-banner button {
+    background: var(--warn); color: #000; border: none; border-radius: 4px;
+    padding: 6px 12px; font-family: var(--mono); font-size: 11px; font-weight: 700; cursor: pointer;
+  }
+
+  .recent-shows { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--border); }
+  .show-row {
+    display: grid; grid-template-columns: 90px 60px 1fr auto; gap: 10px; align-items: center;
+    padding: 11px 8px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; cursor: pointer;
+    border-radius: 4px; transition: background 0.12s;
+  }
+  .show-row:hover { background: var(--surface); }
+  .show-row .show-date { color: var(--text-muted); }
+  .show-row .show-platform { color: var(--text-dim); font-size: 10px; padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 3px; text-align: center; }
+  .show-row .show-earnings { color: var(--text-muted); text-align: right; }
+  .show-row .show-profit { color: var(--accent); text-align: right; min-width: 100px; }
   .show-row .show-profit.loss { color: var(--danger); }
+  .show-row .show-complete { font-size: 10px; color: var(--text-dim); }
+  .show-row .show-complete.full { color: var(--accent); }
+
   .spinner { width: 14px; height: 14px; border: 2px solid rgba(0,229,160,0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
   /* Lock screen */
-  .lock-screen {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999;
-    padding: 24px;
-  }
-  .lock-box {
-    width: 100%; max-width: 340px;
-    text-align: center;
-  }
-  .lock-logo {
-    font-family: var(--mono); font-size: 11px; color: var(--accent);
-    letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 32px;
-  }
-  .lock-title {
-    font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em;
-  }
-  .lock-sub {
-    font-family: var(--mono); font-size: 12px; color: var(--text-muted); margin-bottom: 32px;
-  }
-  .lock-input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); font-family: var(--mono); font-size: 16px;
-    padding: 14px 16px; border-radius: 6px; outline: none; text-align: center;
-    letter-spacing: 0.1em; transition: border-color 0.15s;
-    margin-bottom: 12px;
-  }
+  .lock-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 24px; }
+  .lock-box { width: 100%; max-width: 340px; text-align: center; }
+  .lock-logo { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 32px; }
+  .lock-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .lock-sub { font-family: var(--mono); font-size: 12px; color: var(--text-muted); margin-bottom: 32px; }
+  .lock-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 16px; padding: 14px 16px; border-radius: 6px; outline: none; text-align: center; letter-spacing: 0.1em; transition: border-color 0.15s; margin-bottom: 12px; }
   .lock-input:focus { border-color: var(--accent); }
-  .lock-input.shake {
-    animation: shake 0.3s ease;
-    border-color: var(--danger);
-  }
-  .lock-btn {
-    width: 100%; padding: 14px; background: var(--accent); color: #000;
-    border: none; border-radius: 6px; font-family: var(--sans); font-size: 14px;
-    font-weight: 700; cursor: pointer; letter-spacing: 0.03em;
-  }
-  .lock-error {
-    font-family: var(--mono); font-size: 12px; color: var(--danger);
-    margin-top: 12px; height: 16px;
-  }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20%,60% { transform: translateX(-6px); }
-    40%,80% { transform: translateX(6px); }
-  }
+  .lock-input.shake { animation: shake 0.3s ease; border-color: var(--danger); }
+  .lock-btn { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.03em; }
+  .lock-error { font-family: var(--mono); font-size: 12px; color: var(--danger); margin-top: 12px; height: 16px; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
   .hidden { display: none; }
+
+  /* Edit modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-start; justify-content: center; padding: 20px 16px; overflow-y: auto; }
+  .modal-overlay.show { display: flex; }
+  .modal { width: 100%; max-width: 540px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin: 20px 0; }
+  .modal h3 { font-size: 18px; margin-bottom: 20px; }
+  .modal .modal-close { position: absolute; top: 24px; right: 24px; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 8px; }
+  .modal-btns button { padding: 13px; border: none; border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; flex: 1; }
+  .btn-cancel { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border) !important; }
+  .btn-save { background: var(--accent); color: #000; }
+  .btn-delete { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger) !important; flex: 0.6 !important; }
 </style>
 </head>
 <body>
@@ -161,7 +226,7 @@
 <div class="lock-screen" id="lock-screen">
   <div class="lock-box">
     <div class="lock-logo">Nexcart-ops</div>
-    <div class="lock-title">直播录入系统</div>
+    <div class="lock-title">直播复盘系统</div>
     <div class="lock-sub">请输入访问密码</div>
     <input class="lock-input" type="password" id="lock-input"
       placeholder="••••••••••••"
@@ -173,47 +238,100 @@
 
 <div class="container hidden" id="main-content">
   <div class="header">
-    <div class="header-label">Nexcart-ops</div>
+    <div class="header-label">Nexcart-ops · AI 训练语料</div>
     <h1>直播复盘录入</h1>
     <div class="date-display" id="current-date"></div>
   </div>
 
+  <!-- 待上传队列提示 -->
+  <div class="queue-banner" id="queue-banner">
+    <span id="queue-text">有 0 条待上传的记录</span>
+    <button onclick="flushQueue()">立即重试</button>
+  </div>
+
+  <!-- 基础信息 -->
   <div class="section">
-    <div class="section-label">基础信息</div>
+    <div class="section-label"><span>基础信息</span></div>
     <div class="field">
       <label>日期 DATE</label>
-      <input type="date" id="show_date">
+      <div class="date-row">
+        <input type="date" id="show_date">
+        <button type="button" class="quick-btn" onclick="setQuickDate(0)">今天</button>
+        <button type="button" class="quick-btn" onclick="setQuickDate(-1)">昨天</button>
+      </div>
     </div>
     <div class="field">
       <label>平台 PLATFORM</label>
       <div class="platform-toggle">
         <div class="platform-btn active" data-val="Whatnot" onclick="selectPlatform(this)">Whatnot</div>
-        <div class="platform-btn" data-val="TikTok Live" onclick="selectPlatform(this)">TikTok Live</div>
+        <div class="platform-btn" data-val="TikTok Live" onclick="selectPlatform(this)">TikTok</div>
         <div class="platform-btn" data-val="Both" onclick="selectPlatform(this)">两平台</div>
       </div>
     </div>
     <div class="grid-2">
       <div class="field">
+        <label>场次序号 SESSION NO.</label>
+        <div class="session-toggle">
+          <div class="session-btn active" data-val="1" onclick="selectSessionNo(this)">1 场</div>
+          <div class="session-btn" data-val="2" onclick="selectSessionNo(this)">2 场</div>
+          <div class="session-btn" data-val="3" onclick="selectSessionNo(this)">晚场</div>
+        </div>
+      </div>
+      <div class="field">
         <label>时长 DURATION (小时)</label>
         <input type="number" id="duration_hrs" placeholder="0.0" step="0.5" min="0" oninput="compute()">
       </div>
-      <div class="field">
-        <label>场次编号 SESSION</label>
-        <input type="text" id="session_id" placeholder="自动生成" readonly style="color:var(--text-dim)">
-      </div>
+    </div>
+    <div class="field">
+      <label>自动生成 ID</label>
+      <input type="text" id="session_id" placeholder="自动生成" readonly style="color:var(--text-dim)">
     </div>
   </div>
 
+  <!-- 赛前计划 · AI 训练关键字段 -->
+  <div class="section ai-boost">
+    <div class="section-label">
+      <span>🎯 赛前计划</span>
+      <span class="hint">AI 学"你带着什么目标上场"</span>
+    </div>
+    <div class="field">
+      <label>本场想验证什么 HYPOTHESIS</label>
+      <input type="text" id="plan_hypothesis" placeholder="例：验证 59.9 凉鞋能否扛住开场 30 分钟">
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>开场款 HOOK</label>
+        <input type="text" id="plan_hook_product" placeholder="Cape Robin 凉鞋">
+      </div>
+      <div class="field">
+        <label>压轴款 CLOSER</label>
+        <input type="text" id="plan_closer_product" placeholder="Dream Pairs 高跟">
+      </div>
+    </div>
+    <div class="field">
+      <label>价格策略 PRICE STRATEGY</label>
+      <select id="plan_price_strategy">
+        <option value="">选择策略...</option>
+        <option value="低价引流">低价引流</option>
+        <option value="利润优先">利润优先</option>
+        <option value="新品测款">新品测款</option>
+        <option value="清库存">清库存</option>
+        <option value="混合">混合</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 财务数据 -->
   <div class="section">
-    <div class="section-label">财务数据</div>
+    <div class="section-label"><span>财务数据</span></div>
     <div class="grid-2">
       <div class="field">
         <label>到账金额 EARNINGS ($)</label>
-        <input type="number" id="earnings" placeholder="0" min="0" oninput="compute()">
+        <input type="number" id="earnings" placeholder="0" min="0" step="0.01" oninput="compute()">
       </div>
       <div class="field">
         <label>货成本 COST ($)</label>
-        <input type="number" id="cost" placeholder="0" min="0" oninput="compute()">
+        <input type="number" id="cost" placeholder="0" min="0" step="0.01" oninput="compute()">
       </div>
     </div>
     <div class="computed-row">
@@ -230,32 +348,87 @@
     </div>
   </div>
 
+  <!-- 受众数据 -->
   <div class="section">
-    <div class="section-label">受众数据 <span style="color:var(--text-dim);font-size:9px">(选填)</span></div>
+    <div class="section-label"><span>受众数据</span><span class="hint">选填</span></div>
     <div class="grid-2">
       <div class="field">
         <label>买家数 BUYERS</label>
         <input type="number" id="buyers" placeholder="—" min="0">
       </div>
       <div class="field">
-        <label>首购 FIRST-TIME BUYERS</label>
+        <label>首购 FIRST-TIME</label>
         <input type="number" id="first_time_buyers" placeholder="—" min="0">
       </div>
     </div>
     <div class="grid-2">
       <div class="field">
-        <label>峰值在线 MAX CONCURRENT</label>
+        <label>峰值在线 PEAK</label>
         <input type="number" id="max_concurrent" placeholder="—" min="0">
       </div>
       <div class="field">
-        <label>总观看 TOTAL VIEWS</label>
+        <label>总观看 VIEWS</label>
         <input type="number" id="total_views" placeholder="—" min="0">
       </div>
     </div>
   </div>
 
+  <!-- 三好三坏 · AI 训练关键字段 -->
+  <div class="section ai-boost">
+    <div class="section-label">
+      <span>🏆 三好三坏</span>
+      <span class="hint">AI 学"什么起作用 / 什么出问题"</span>
+    </div>
+    <div class="field">
+      <label>现场气氛 VIBE</label>
+      <div class="vibe-row">
+        <div class="vibe-btn" data-v="cold" onclick="selectVibe(this)"><span class="emoji">❄️</span>冷</div>
+        <div class="vibe-btn" data-v="warm" onclick="selectVibe(this)"><span class="emoji">🌤</span>温</div>
+        <div class="vibe-btn" data-v="hot" onclick="selectVibe(this)"><span class="emoji">🔥</span>热</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>✅ 做对的 3 件事</label>
+      <div id="wins-container"></div>
+    </div>
+    <div class="field">
+      <label>❌ 没做好的 3 件事</label>
+      <div id="losses-container"></div>
+    </div>
+    <div class="field">
+      <label>这套打法下次还用吗? CONFIDENCE</label>
+      <div class="stars" id="confidence-stars">
+        <div class="star" data-n="1" onclick="selectConfidence(1)">★</div>
+        <div class="star" data-n="2" onclick="selectConfidence(2)">★</div>
+        <div class="star" data-n="3" onclick="selectConfidence(3)">★</div>
+        <div class="star" data-n="4" onclick="selectConfidence(4)">★</div>
+        <div class="star" data-n="5" onclick="selectConfidence(5)">★</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 语音复盘 · AI 训练最高价值字段 -->
+  <div class="section ai-boost">
+    <div class="section-label">
+      <span>🎤 语音复盘</span>
+      <span class="hint">AI 学"主播的直觉"</span>
+    </div>
+    <div class="voice-box">
+      <div class="voice-controls">
+        <button type="button" class="voice-btn" id="voice-btn" onclick="toggleVoice()">
+          <span id="voice-btn-icon">🎙</span>
+          <span id="voice-btn-txt">开始录音</span>
+        </button>
+        <span class="voice-status" id="voice-status">按一下说话，再按一下停止</span>
+      </div>
+      <textarea class="voice-textarea" id="voice_memo_text"
+        placeholder="按住"开始录音"说话，或直接打字。&#10;&#10;建议说：&#10;- 今天最意外的一刻是什么？&#10;- 观众最活跃时候你在干什么？&#10;- 下次你打算换掉的一件事是什么？"></textarea>
+    </div>
+  </div>
+
+  <!-- 场次评估（保留原有标签选择）-->
   <div class="section">
-    <div class="section-label">场次评估 <span style="color:var(--text-dim);font-size:9px">(选填)</span></div>
+    <div class="section-label"><span>场次评估</span><span class="hint">选填</span></div>
     <div class="field">
       <label>场次标签 LABEL</label>
       <select id="show_label">
@@ -266,17 +439,26 @@
         <option value="Test">测试场 Test</option>
       </select>
     </div>
-    <div class="field">
-      <label>备注 NOTES</label>
-      <input type="text" id="notes" placeholder="今晚最强驱动、遇到的问题...">
-    </div>
   </div>
 
   <button class="submit-btn" id="submit-btn" onclick="submitShow()">提交入库 →</button>
 
   <div class="recent-shows">
-    <div class="section-label">最近场次</div>
+    <div class="section-label"><span>最近场次</span><span class="hint">点击编辑</span></div>
     <div id="recent-list"><div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);padding:16px 0">加载中...</div></div>
+  </div>
+</div>
+
+<!-- 编辑模态框 -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this) closeEdit()">
+  <div class="modal">
+    <h3>编辑场次</h3>
+    <div id="edit-body"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEdit()">取消</button>
+      <button class="btn-delete" onclick="deleteRecord()">删除</button>
+      <button class="btn-save" onclick="saveEdit()">保存</button>
+    </div>
   </div>
 </div>
 
@@ -286,15 +468,14 @@
 const SUPABASE_URL = 'https://awxjvoqhlefxosbzegws.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3eGp2b3FobGVmeG9zYnplZ3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzAzMTQsImV4cCI6MjA5MDk0NjMxNH0.Dfutb1IOiajLgoFQnSzcnxPqJ4VTf1sGIZGslB7gkig';
 
-// Password check
-const PWD_HASH = '7a3e2b4d9f1c8e6a0b5d4f2e9c7a1b3d'; // nexcart2026 simple hash
+const WIN_LOSS_TAGS = ['选品', '话术', '节奏', '价格', '流量', '气氛', '库存', '运气', '其他'];
+const QUEUE_KEY = 'nx_pending_queue_v2';
+
+// ============ 锁屏 ============
 function simpleHash(str) {
   let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h) + str.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h).toString(16).padStart(8,'0');
+  for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
+  return Math.abs(h).toString(16).padStart(8, '0');
 }
 const CORRECT_HASH = simpleHash('nexcart2026');
 
@@ -304,38 +485,51 @@ function checkPassword() {
     sessionStorage.setItem('nx_auth', CORRECT_HASH);
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('main-content').classList.remove('hidden');
-    loadRecent();
+    init();
   } else {
     const inp = document.getElementById('lock-input');
-    inp.classList.add('shake');
-    inp.value = '';
+    inp.classList.add('shake'); inp.value = '';
     document.getElementById('lock-error').textContent = '密码错误，请重试';
-    setTimeout(() => {
-      inp.classList.remove('shake');
-      document.getElementById('lock-error').textContent = '';
-    }, 1000);
+    setTimeout(() => { inp.classList.remove('shake'); document.getElementById('lock-error').textContent = ''; }, 1000);
   }
 }
 
-// Auto-unlock if already authenticated this session
 if (sessionStorage.getItem('nx_auth') === CORRECT_HASH) {
   document.getElementById('lock-screen').style.display = 'none';
   document.getElementById('main-content').classList.remove('hidden');
+  window.addEventListener('DOMContentLoaded', init);
+} else {
+  window.addEventListener('DOMContentLoaded', () => { document.getElementById('lock-input').focus(); });
 }
+
+// ============ 状态 ============
 let selectedPlatform = 'Whatnot';
+let selectedSessionNo = 1;
+let selectedVibe = null;
+let selectedConfidence = 0;
 
-const today = new Date();
-document.getElementById('show_date').value = today.toISOString().split('T')[0];
-document.getElementById('current-date').textContent =
-  today.toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
-
-function updateSessionId() {
-  const d = document.getElementById('show_date').value.replace(/-/g,'');
-  const p = selectedPlatform.replace(/\s+/g,'');
-  document.getElementById('session_id').value = d + '_' + p;
+// ============ 初始化 ============
+function init() {
+  const today = new Date();
+  document.getElementById('show_date').value = today.toISOString().split('T')[0];
+  document.getElementById('current-date').textContent =
+    today.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+  document.getElementById('show_date').addEventListener('change', updateSessionId);
+  updateSessionId();
+  renderWinLossRows();
+  loadRecent();
+  refreshQueueBanner();
+  flushQueue(); // 静默重试离线队列
 }
-document.getElementById('show_date').addEventListener('change', updateSessionId);
-updateSessionId();
+
+function setQuickDate(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  document.getElementById('show_date').value = d.toISOString().split('T')[0];
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  updateSessionId();
+}
 
 function selectPlatform(el) {
   document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
@@ -344,6 +538,56 @@ function selectPlatform(el) {
   updateSessionId();
 }
 
+function selectSessionNo(el) {
+  document.querySelectorAll('.session-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedSessionNo = parseInt(el.dataset.val);
+  updateSessionId();
+}
+
+function selectVibe(el) {
+  document.querySelectorAll('.vibe-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedVibe = el.dataset.v;
+}
+
+function selectConfidence(n) {
+  selectedConfidence = n;
+  document.querySelectorAll('#confidence-stars .star').forEach(s => {
+    s.classList.toggle('on', parseInt(s.dataset.n) <= n);
+  });
+}
+
+function updateSessionId() {
+  const d = document.getElementById('show_date').value.replace(/-/g, '');
+  const p = selectedPlatform.replace(/\s+/g, '');
+  document.getElementById('session_id').value = `${d}_${p}_${selectedSessionNo}`;
+}
+
+function renderWinLossRows() {
+  const buildRow = (prefix, i) => `
+    <div class="wl-row">
+      <select id="${prefix}_tag_${i}">
+        <option value="">类型...</option>
+        ${WIN_LOSS_TAGS.map(t => `<option value="${t}">${t}</option>`).join('')}
+      </select>
+      <input type="text" id="${prefix}_note_${i}" placeholder="一句话（${prefix === 'win' ? '为什么有效' : '为什么没做好'}）">
+    </div>`;
+  document.getElementById('wins-container').innerHTML = [1, 2, 3].map(i => buildRow('win', i)).join('');
+  document.getElementById('losses-container').innerHTML = [1, 2, 3].map(i => buildRow('loss', i)).join('');
+}
+
+function collectWinLoss(prefix) {
+  const arr = [];
+  for (let i = 1; i <= 3; i++) {
+    const tag = document.getElementById(`${prefix}_tag_${i}`).value.trim();
+    const note = document.getElementById(`${prefix}_note_${i}`).value.trim();
+    if (tag || note) arr.push({ tag: tag || null, note: note || null });
+  }
+  return arr;
+}
+
+// ============ 财务计算 ============
 function compute() {
   const e = parseFloat(document.getElementById('earnings').value) || 0;
   const c = parseFloat(document.getElementById('cost').value) || 0;
@@ -357,9 +601,10 @@ function compute() {
     el.textContent = text;
     el.className = 'value ' + cls;
   };
+  const fmt = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(0);
 
   if (e > 0 || c > 0) {
-    set('disp-profit', '$' + profit.toFixed(0), profit >= 0 ? 'positive' : 'negative');
+    set('disp-profit', fmt(profit), profit >= 0 ? 'positive' : 'negative');
   } else set('disp-profit', '—', 'neutral');
 
   if (margin !== null) {
@@ -367,10 +612,68 @@ function compute() {
   } else set('disp-margin', '—', 'neutral');
 
   if (profitHr !== null) {
-    set('disp-profit-hr', '$' + profitHr.toFixed(0) + '/hr', profitHr >= 200 ? 'positive' : profitHr >= 100 ? 'neutral' : 'negative');
+    set('disp-profit-hr', fmt(profitHr) + '/hr', profitHr >= 200 ? 'positive' : profitHr >= 100 ? 'neutral' : 'negative');
   } else set('disp-profit-hr', '—', 'neutral');
 }
 
+// ============ 语音识别 ============
+let recognition = null;
+let isRecording = false;
+function setupRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('voice-btn').disabled = true;
+    document.getElementById('voice-status').textContent = '此浏览器不支持语音识别，请直接打字';
+    return null;
+  }
+  const r = new SR();
+  r.lang = 'zh-CN'; r.continuous = true; r.interimResults = true;
+  r.onresult = (e) => {
+    const ta = document.getElementById('voice_memo_text');
+    let finalText = ta.dataset.finalText || '';
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const txt = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalText += txt;
+      else interim += txt;
+    }
+    ta.dataset.finalText = finalText;
+    ta.value = finalText + (interim ? ` [${interim}]` : '');
+  };
+  r.onerror = (e) => {
+    document.getElementById('voice-status').textContent = '识别出错：' + e.error + '（请直接打字）';
+    stopVoice();
+  };
+  r.onend = () => { if (isRecording) { try { r.start(); } catch(_){} } };
+  return r;
+}
+function toggleVoice() {
+  if (!recognition) recognition = setupRecognition();
+  if (!recognition) return;
+  if (isRecording) stopVoice(); else startVoice();
+}
+function startVoice() {
+  const ta = document.getElementById('voice_memo_text');
+  ta.dataset.finalText = ta.value;
+  try { recognition.start(); } catch(_) {}
+  isRecording = true;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.add('recording');
+  document.getElementById('voice-btn-icon').textContent = '⏹';
+  document.getElementById('voice-btn-txt').textContent = '停止录音';
+  document.getElementById('voice-status').textContent = '正在听... 说"下次我想试什么"';
+}
+function stopVoice() {
+  isRecording = false;
+  try { recognition.stop(); } catch(_) {}
+  const btn = document.getElementById('voice-btn');
+  btn.classList.remove('recording');
+  document.getElementById('voice-btn-icon').textContent = '🎙';
+  document.getElementById('voice-btn-txt').textContent = '继续录音';
+  document.getElementById('voice-status').textContent = '已停止。可以继续说或直接编辑文字';
+}
+
+// ============ Toast ============
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.className = 'toast ' + type;
@@ -379,35 +682,50 @@ function showToast(msg, type = 'success') {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-async function submitShow() {
-  const btn = document.getElementById('submit-btn');
+// ============ 提交 ============
+function buildPayload() {
   const earnings = parseFloat(document.getElementById('earnings').value);
   const cost = parseFloat(document.getElementById('cost').value);
   const show_date = document.getElementById('show_date').value;
 
-  if (!show_date) return showToast('请填写日期', 'error');
-  if (!earnings || earnings <= 0) return showToast('请填写到账金额', 'error');
-  if (!cost || cost <= 0) return showToast('请填写货成本', 'error');
+  if (!show_date) return { error: '请选日期' };
+  if (isNaN(earnings) || earnings < 0) return { error: '请填到账金额（0 也行，但不能为空）' };
+  if (isNaN(cost) || cost < 0) return { error: '请填货成本（没成本填 0）' };
 
   const gross_profit = earnings - cost;
   const duration_hrs = parseFloat(document.getElementById('duration_hrs').value) || null;
 
-  const payload = {
+  return {
     show_date,
     platform: selectedPlatform,
+    session_no: selectedSessionNo,
     session_id: document.getElementById('session_id').value,
     duration_hrs,
     earnings,
     cost,
     gross_profit,
-    margin: parseFloat((gross_profit / earnings).toFixed(4)),
+    margin: earnings > 0 ? parseFloat((gross_profit / earnings).toFixed(4)) : 0,
     buyers: parseInt(document.getElementById('buyers').value) || null,
     first_time_buyers: parseInt(document.getElementById('first_time_buyers').value) || null,
     max_concurrent: parseInt(document.getElementById('max_concurrent').value) || null,
     total_views: parseInt(document.getElementById('total_views').value) || null,
     show_label: document.getElementById('show_label').value || null,
-    notes: document.getElementById('notes').value || null,
+    plan_hypothesis: document.getElementById('plan_hypothesis').value || null,
+    plan_hook_product: document.getElementById('plan_hook_product').value || null,
+    plan_closer_product: document.getElementById('plan_closer_product').value || null,
+    plan_price_strategy: document.getElementById('plan_price_strategy').value || null,
+    vibe: selectedVibe,
+    wins: collectWinLoss('win'),
+    losses: collectWinLoss('loss'),
+    confidence_repeat: selectedConfidence || null,
+    voice_memo_text: document.getElementById('voice_memo_text').value || null,
   };
+}
+
+async function submitShow() {
+  const btn = document.getElementById('submit-btn');
+  const payload = buildPayload();
+  if (payload.error) return showToast(payload.error, 'error');
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
@@ -419,21 +737,27 @@ async function submitShow() {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'return=minimal'
+        'Prefer': 'return=minimal',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
-
     if (res.ok) {
       showToast('已保存到数据库');
       resetForm();
       loadRecent();
     } else {
       const err = await res.json().catch(() => ({}));
-      showToast(err.message || '保存失败，请重试', 'error');
+      const msg = err.message || '';
+      if (res.status === 409 || /duplicate|unique/i.test(msg)) {
+        showToast('这个场次已经录过了（同一天 + 平台 + 场次号）', 'error');
+      } else {
+        queueForRetry(payload);
+        showToast('保存失败已离线排队，稍后自动重试', 'error');
+      }
     }
-  } catch(e) {
-    showToast('网络错误，请检查连接', 'error');
+  } catch (e) {
+    queueForRetry(payload);
+    showToast('网络错误，已离线排队', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '提交入库 →';
@@ -441,19 +765,73 @@ async function submitShow() {
 }
 
 function resetForm() {
-  ['earnings','cost','duration_hrs','buyers','first_time_buyers','max_concurrent','total_views','notes'].forEach(id => {
+  ['earnings', 'cost', 'duration_hrs', 'buyers', 'first_time_buyers', 'max_concurrent', 'total_views',
+   'plan_hypothesis', 'plan_hook_product', 'plan_closer_product', 'voice_memo_text'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('show_label').value = '';
+  document.getElementById('plan_price_strategy').value = '';
+  document.getElementById('voice_memo_text').dataset.finalText = '';
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById(`win_tag_${i}`).value = '';
+    document.getElementById(`win_note_${i}`).value = '';
+    document.getElementById(`loss_tag_${i}`).value = '';
+    document.getElementById(`loss_note_${i}`).value = '';
+  }
+  selectedVibe = null;
+  document.querySelectorAll('.vibe-btn').forEach(b => b.classList.remove('active'));
+  selectedConfidence = 0;
+  document.querySelectorAll('#confidence-stars .star').forEach(s => s.classList.remove('on'));
   document.getElementById('show_date').value = new Date().toISOString().split('T')[0];
   updateSessionId();
   compute();
 }
 
+// ============ 离线队列 ============
+function queueForRetry(payload) {
+  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  q.push({ payload, queued_at: Date.now() });
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  refreshQueueBanner();
+}
+
+function refreshQueueBanner() {
+  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  const banner = document.getElementById('queue-banner');
+  if (q.length === 0) { banner.classList.remove('show'); return; }
+  document.getElementById('queue-text').textContent = `有 ${q.length} 条待上传的记录`;
+  banner.classList.add('show');
+}
+
+async function flushQueue() {
+  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  if (q.length === 0) return;
+  const remaining = [];
+  for (const item of q) {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/shows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(item.payload),
+      });
+      if (!res.ok && res.status !== 409) remaining.push(item);
+    } catch (_) { remaining.push(item); }
+  }
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
+  refreshQueueBanner();
+  if (remaining.length === 0 && q.length > 0) {
+    showToast(`已补传 ${q.length} 条记录`);
+    loadRecent();
+  }
+}
+
+// ============ 最近场次 + 编辑 ============
+let editingRow = null;
+
 async function loadRecent() {
   try {
     const res = await fetch(
-      SUPABASE_URL + '/rest/v1/shows?select=show_date,platform,earnings,gross_profit&order=show_date.desc&limit=6',
+      SUPABASE_URL + '/rest/v1/shows?select=*&order=show_date.desc,session_no.desc&limit=8',
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
     );
     const data = await res.json();
@@ -463,23 +841,96 @@ async function loadRecent() {
       return;
     }
     el.innerHTML = data.map(s => {
-      const profit = s.gross_profit;
-      const margin = s.earnings > 0 ? (profit / s.earnings * 100).toFixed(0) : '—';
-      return `<div class="show-row">
+      const profit = parseFloat(s.gross_profit) || 0;
+      const earnings = parseFloat(s.earnings) || 0;
+      const margin = earnings > 0 ? (profit / earnings * 100).toFixed(0) : '—';
+      const sign = profit >= 0 ? '+' : '-';
+      const absProfit = Math.abs(profit).toFixed(0);
+      const hasPlan = s.plan_hypothesis || s.plan_hook_product;
+      const hasReview = (s.wins && s.wins.length) || (s.losses && s.losses.length) || s.voice_memo_text;
+      const complete = hasPlan && hasReview ? '●●' : hasPlan || hasReview ? '●○' : '○○';
+      const cls = hasPlan && hasReview ? 'full' : '';
+      return `<div class="show-row" onclick='openEdit(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
         <span class="show-date">${s.show_date}</span>
-        <span class="show-platform">${s.platform}</span>
-        <span class="show-earnings">$${s.earnings}</span>
-        <span class="show-profit ${profit < 0 ? 'loss' : ''}">+$${profit} (${margin}%)</span>
+        <span class="show-platform">${s.platform || '-'}</span>
+        <span class="show-earnings">$${earnings.toFixed(0)}</span>
+        <span class="show-profit ${profit < 0 ? 'loss' : ''}">${sign}$${absProfit} (${margin}%)</span>
+        <span class="show-complete ${cls}" title="赛前计划 / 复盘完整度">${complete}</span>
       </div>`;
     }).join('');
-  } catch(e) {
+  } catch (e) {
     document.getElementById('recent-list').innerHTML =
       '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);padding:16px 0">无法加载历史记录</div>';
   }
 }
 
-// loadRecent is called after successful auth (or auto-unlock above)
-if (sessionStorage.getItem('nx_auth') === CORRECT_HASH) loadRecent();
+function openEdit(record) {
+  editingRow = record;
+  const body = document.getElementById('edit-body');
+  body.innerHTML = `
+    <div class="field"><label>日期</label><input type="date" id="e_show_date" value="${record.show_date || ''}"></div>
+    <div class="grid-2">
+      <div class="field"><label>营收 $</label><input type="number" id="e_earnings" value="${record.earnings || 0}" step="0.01"></div>
+      <div class="field"><label>成本 $</label><input type="number" id="e_cost" value="${record.cost || 0}" step="0.01"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>买家</label><input type="number" id="e_buyers" value="${record.buyers || ''}"></div>
+      <div class="field"><label>峰值在线</label><input type="number" id="e_max_concurrent" value="${record.max_concurrent || ''}"></div>
+    </div>
+    <div class="field"><label>赛前假设</label><input type="text" id="e_plan_hypothesis" value="${(record.plan_hypothesis || '').replace(/"/g, '&quot;')}"></div>
+    <div class="grid-2">
+      <div class="field"><label>开场款</label><input type="text" id="e_plan_hook_product" value="${(record.plan_hook_product || '').replace(/"/g, '&quot;')}"></div>
+      <div class="field"><label>压轴款</label><input type="text" id="e_plan_closer_product" value="${(record.plan_closer_product || '').replace(/"/g, '&quot;')}"></div>
+    </div>
+    <div class="field"><label>语音复盘文本</label><textarea id="e_voice_memo_text">${record.voice_memo_text || ''}</textarea></div>
+  `;
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function closeEdit() {
+  document.getElementById('edit-modal').classList.remove('show');
+  editingRow = null;
+}
+
+async function saveEdit() {
+  if (!editingRow) return;
+  const earnings = parseFloat(document.getElementById('e_earnings').value) || 0;
+  const cost = parseFloat(document.getElementById('e_cost').value) || 0;
+  const updates = {
+    show_date: document.getElementById('e_show_date').value,
+    earnings, cost,
+    gross_profit: earnings - cost,
+    margin: earnings > 0 ? parseFloat(((earnings - cost) / earnings).toFixed(4)) : 0,
+    buyers: parseInt(document.getElementById('e_buyers').value) || null,
+    max_concurrent: parseInt(document.getElementById('e_max_concurrent').value) || null,
+    plan_hypothesis: document.getElementById('e_plan_hypothesis').value || null,
+    plan_hook_product: document.getElementById('e_plan_hook_product').value || null,
+    plan_closer_product: document.getElementById('e_plan_closer_product').value || null,
+    voice_memo_text: document.getElementById('e_voice_memo_text').value || null,
+  };
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/shows?id=eq.' + editingRow.id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(updates),
+    });
+    if (res.ok) { showToast('已更新'); closeEdit(); loadRecent(); }
+    else { showToast('更新失败', 'error'); }
+  } catch (_) { showToast('网络错误', 'error'); }
+}
+
+async function deleteRecord() {
+  if (!editingRow) return;
+  if (!confirm('确定删除 ' + editingRow.show_date + ' 这场记录？')) return;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/shows?id=eq.' + editingRow.id, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+    });
+    if (res.ok) { showToast('已删除'); closeEdit(); loadRecent(); }
+    else { showToast('删除失败', 'error'); }
+  } catch (_) { showToast('网络错误', 'error'); }
+}
 </script>
 </body>
 </html>
