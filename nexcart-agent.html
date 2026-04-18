@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Nexcart 业务智能体 v3</title>
+<title>Nexcart 业务智能体 v5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -23,6 +23,7 @@
     --accent-gold: #f59e0b;
     --accent-blue: #3b82f6;
     --accent-red: #ef4444;
+    --accent-yellow: #eab308;
     --user-bubble: #1e3a5f;
     --ai-bubble: #1a2332;
     --shadow: 0 4px 24px rgba(0,0,0,0.4);
@@ -107,6 +108,61 @@
   .stat-value.green { color: var(--accent); }
   .stat-value.gold { color: var(--accent-gold); }
 
+  /* ====== 标签导航 ====== */
+  .tab-bar {
+    display: flex; gap: 0; padding: 0; overflow-x: auto;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex-shrink: 0; padding: 12px 20px;
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 14px; cursor: pointer;
+    transition: all .2s; white-space: nowrap;
+    font-weight: 600;
+  }
+  .tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-btn { position: relative; }
+  .notif-badge {
+    position: absolute; top: 4px; right: 2px;
+    background: var(--accent-red); color: white;
+    font-size: 10px; font-weight: 700;
+    min-width: 16px; height: 16px; line-height: 16px;
+    border-radius: 8px; text-align: center; padding: 0 4px;
+  }
+  .notif-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
+    cursor: pointer; transition: all .2s;
+  }
+  .notif-card:hover { border-color: var(--accent); }
+  .notif-card.unread { border-left: 3px solid var(--accent); }
+  .notif-card .notif-type {
+    font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .notif-card .notif-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .notif-card .notif-summary {
+    font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+    white-space: pre-line; max-height: 80px; overflow: hidden;
+  }
+  .notif-card .notif-time { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+  .notif-empty {
+    text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px;
+  }
+
   /* ====== 快捷按钮 ====== */
   .quick-bar {
     display: flex; gap: 6px; padding: 10px 16px;
@@ -127,6 +183,23 @@
     background: var(--accent-glow);
     border-color: var(--accent);
     color: var(--accent);
+  }
+
+  /* ====== 内容容器 ====== */
+  .tabs-content {
+    flex: 1; overflow: hidden; position: relative;
+  }
+
+  .tab-content {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    opacity: 0; transform: translateX(20px);
+    transition: opacity .2s, transform .2s;
+  }
+  .tab-content.active {
+    display: flex;
+    opacity: 1; transform: translateX(0);
+    position: relative;
   }
 
   /* ====== 聊天区域 ====== */
@@ -191,6 +264,17 @@
   }
   .search-badge::before { content: '🌐'; }
 
+  /* 工具调用标签 */
+  .tool-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; margin-bottom: 8px; margin-right: 4px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px; font-size: 11px;
+    color: var(--accent);
+  }
+  .tool-badge::before { content: '🔍'; }
+
   /* 打字动画 */
   .typing-indicator { display: flex; gap: 4px; padding: 4px 0; }
   .typing-dot {
@@ -223,6 +307,166 @@
   }
   .welcome li:last-child { border: none; }
   .welcome li::before { content: '→ '; color: var(--accent); }
+
+  /* ====== 标签页特定样式 ====== */
+
+  /* 加载中 */
+  .loading-spinner {
+    display: flex; align-items: center; justify-content: center;
+    flex: 1;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 预警标签页 */
+  .alerts-grid {
+    display: grid; grid-template-columns: 1fr;
+    gap: 12px; padding: 16px;
+    overflow-y: auto; flex: 1;
+  }
+  .alert-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-green, var(--accent));
+    border-radius: 10px;
+    padding: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .alert-card.warning { border-left-color: var(--accent-yellow); }
+  .alert-card.critical { border-left-color: var(--accent-red); }
+  .alert-left { flex: 1; }
+  .alert-metric { font-size: 12px; color: var(--text-muted); }
+  .alert-name { font-size: 15px; font-weight: 600; margin: 4px 0; }
+  .alert-values { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .alert-change { font-size: 13px; font-weight: 600; }
+  .alert-change.up { color: var(--accent-red); }
+  .alert-change.down { color: var(--accent); }
+
+  /* 成本标签页 */
+  .cost-section {
+    padding: 16px; overflow-y: auto; flex: 1;
+  }
+  .cost-total {
+    background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(59,130,246,0.2));
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .cost-label { font-size: 12px; color: var(--text-muted); }
+  .cost-amount { font-size: 28px; font-weight: 700; color: var(--accent); margin: 8px 0; }
+  .cost-chart {
+    margin: 20px 0;
+  }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+  .bar-item {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .bar-label { font-size: 12px; color: var(--text-muted); width: 60px; text-align: right; }
+  .bar-container {
+    flex: 1; height: 20px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-gold));
+    border-radius: 4px;
+    transition: width .3s ease;
+  }
+  .bar-value { font-size: 11px; color: var(--text-muted); width: 40px; text-align: right; }
+
+  /* 买家标签页 */
+  .customer-section {
+    padding: 16px; overflow-y: auto; flex: 1;
+  }
+  .overview-cards {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px; margin-bottom: 20px;
+  }
+  .overview-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .overview-value { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .overview-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* 报告标签页 */
+  .report-section {
+    padding: 16px; overflow-y: auto; flex: 1;
+  }
+  .report-header {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .report-date { font-size: 12px; color: var(--text-muted); }
+  .report-title { font-size: 16px; font-weight: 700; margin: 4px 0; }
+  .metrics-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px; margin-bottom: 16px;
+  }
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .metric-value { font-size: 16px; font-weight: 700; color: var(--accent-gold); }
+  .metric-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .shows-list {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .show-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+    font-size: 12px;
+  }
+  .show-item:last-child { border: none; }
+  .show-name { color: var(--text-primary); }
+  .show-revenue { color: var(--accent-gold); font-weight: 600; }
+  .summary-text {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  /* 排品标签页 */
+  .recommend-section {
+    padding: 16px; overflow-y: auto; flex: 1;
+  }
+  .recommend-card {
+    background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.15));
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+  }
 
   /* ====== 图片预览区 ====== */
   .image-preview {
@@ -323,8 +567,11 @@
     .stats-bar { grid-template-columns: repeat(2, 1fr); }
     .stat-value { font-size: 16px; }
     .top-bar { padding: 10px 14px; }
+    .tab-btn { padding: 10px 14px; font-size: 12px; }
     .chat-area { padding: 12px; }
     .msg { max-width: 95%; }
+    .overview-cards { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr; }
   }
   @media (min-width: 768px) {
     .chat-area { max-width: 800px; margin: 0 auto; width: 100%; }
@@ -339,7 +586,7 @@
   <div class="lock-logo">📊</div>
   <div class="lock-title">NEXCART-OPS</div>
   <div class="lock-subtitle">业务分析智能体</div>
-  <div class="lock-version">v3.0 · 图片识别 · 全网比价</div>
+  <div class="lock-version">v5.0 · 精准查询 · 图片识别 · 全网比价</div>
   <div class="lock-input-wrap">
     <input type="password" id="pwdInput" placeholder="请输入访问密码" onkeydown="if(event.key==='Enter')unlock()">
     <button onclick="unlock()">进入</button>
@@ -359,7 +606,7 @@
     <div class="top-left">
       <div class="top-dot" id="statusDot"></div>
       <div>
-        <div class="top-brand">NEXCART-OPS v3</div>
+        <div class="top-brand">NEXCART-OPS v5</div>
         <div class="top-title">业务分析智能体</div>
       </div>
     </div>
@@ -388,46 +635,186 @@
     </div>
   </div>
 
-  <!-- 快捷问题 -->
-  <div class="quick-bar">
+  <!-- 标签导航 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')">💬 聊天</button>
+    <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">🔔 预警</button>
+    <button class="tab-btn" data-tab="costs" onclick="switchTab('costs')">💰 成本</button>
+    <button class="tab-btn" data-tab="customers" onclick="switchTab('customers')">👥 买家</button>
+    <button class="tab-btn" data-tab="report" onclick="switchTab('report')">📊 报告</button>
+    <button class="tab-btn" data-tab="recommend" onclick="switchTab('recommend')">🎯 排品</button>
+    <button class="tab-btn" data-tab="products" onclick="switchTab('products')">🏷️ 单品</button>
+    <button class="tab-btn" data-tab="inventory" onclick="switchTab('inventory')">📦 库存</button>
+    <button class="tab-btn" data-tab="import" onclick="switchTab('import')">📥 导入</button>
+    <button class="tab-btn" data-tab="notif" onclick="switchTab('notif')">📬 通知<span class="notif-badge" id="notifBadge" style="display:none;"></span></button>
+  </div>
+
+  <!-- 快捷问题 (仅在聊天标签显示) -->
+  <div class="quick-bar" id="quickBar">
     <button class="quick-btn" onclick="ask('最近10场的毛利率趋势怎么样？哪几场表现最好？')">📈 毛利趋势</button>
     <button class="quick-btn" onclick="ask('帮我分析一下各品类成交价排名，哪种商品最赚钱？')">👟 品类排名</button>
     <button class="quick-btn" onclick="ask('热销尺码分析，哪些尺码卖得最好？')">📏 尺码分析</button>
     <button class="quick-btn" onclick="ask('对比一下各平台的表现，哪个平台利润率最高？')">⚖️ 平台对比</button>
-    <button class="quick-btn" onclick="ask('分析最近的最佳场次，是什么让它表现好？')">🏆 最佳场次</button>
-    <button class="quick-btn" onclick="ask('品牌溢价分析，哪个品牌利润空间最大？')">🏷️ 品牌分析</button>
-    <button class="quick-btn" onclick="ask('根据历史数据，给我今晚直播的排品建议')">🎯 排品建议</button>
-    <button class="quick-btn" onclick="ask('给我一个完整的月度经营总结报告')">📋 月度报告</button>
+    <button class="quick-btn" onclick="ask('📊 周报')">📊 周报</button>
+    <button class="quick-btn" onclick="ask('🔔 异常预警')">🔔 异常预警</button>
+    <button class="quick-btn" onclick="ask('💰 API成本')">💰 API成本</button>
+    <button class="quick-btn" onclick="ask('👥 买家分析')">👥 买家分析</button>
   </div>
 
-  <!-- 聊天区域 -->
-  <div class="chat-area" id="chatArea">
-    <div class="welcome">
-      <h2>你好！我是 <span>Nexcart 业务智能体 v3</span></h2>
-      <p>已连接实时数据库 + 全网比价引擎，所有数据 100% 真实准确。</p>
-      <ul>
-        <li>📷 拍照上传商品图片，自动识别品牌并给出采购/售价建议</li>
-        <li>🌐 自动搜索全网（eBay/Amazon/Poshmark等）同款在售价格</li>
-        <li>问我任何关于 GMV、毛利率、成交量的问题</li>
-        <li>分析品类、品牌、尺码的销售表现</li>
-        <li>对比不同场次和平台的数据</li>
-        <li>获取基于数据的排品和运营建议</li>
-      </ul>
+  <!-- 内容容器 -->
+  <div class="tabs-content">
+    <!-- 聊天标签页 -->
+    <div class="tab-content active" id="chatContent">
+      <div class="chat-area" id="chatArea">
+        <div class="welcome">
+          <h2>你好！我是 <span>Nexcart 业务智能体 v5</span></h2>
+          <p>已连接实时数据库 + 精准查询引擎 + 全网比价 + 数据仪表板，所有数据 100% 从数据库实时查询。</p>
+          <ul>
+            <li>🔍 支持按日期范围、平台精确查询，数据绝对准确</li>
+            <li>📷 拍照上传商品图片，自动识别品牌并给出采购/售价建议</li>
+            <li>🌐 自动搜索全网（eBay/Amazon/Poshmark等）同款在售价格</li>
+            <li>问我任何关于 GMV、毛利率、成交量的问题</li>
+            <li>分析品类、品牌、尺码的销售表现</li>
+            <li>对比不同场次和平台的数据</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 图片预览区 (聊天标签) -->
+      <div class="image-preview" id="imagePreview">
+        <img class="preview-thumb" id="previewThumb" src="" alt="">
+        <div class="preview-info">
+          <div class="preview-name" id="previewName">image.jpg</div>
+          <div class="preview-hint">发送后自动识别商品 + 全网比价</div>
+        </div>
+        <button class="preview-remove" onclick="removeImage()" title="移除图片">✕</button>
+      </div>
+    </div>
+
+    <!-- 预警标签页 -->
+    <div class="tab-content" id="alertsContent">
+      <div class="loading-spinner" id="alertsLoading">
+        <div class="spinner"></div>
+      </div>
+      <div class="alerts-grid" id="alertsGrid" style="display: none;"></div>
+    </div>
+
+    <!-- 成本标签页 -->
+    <div class="tab-content" id="costsContent">
+      <div class="loading-spinner" id="costsLoading">
+        <div class="spinner"></div>
+      </div>
+      <div class="cost-section" id="costSection" style="display: none;"></div>
+    </div>
+
+    <!-- 买家标签页 -->
+    <div class="tab-content" id="customersContent">
+      <div class="loading-spinner" id="customersLoading">
+        <div class="spinner"></div>
+      </div>
+      <div class="customer-section" id="customerSection" style="display: none;"></div>
+    </div>
+
+    <!-- 报告标签页 -->
+    <div class="tab-content" id="reportContent">
+      <div class="loading-spinner" id="reportLoading">
+        <div class="spinner"></div>
+      </div>
+      <div class="report-section" id="reportSection" style="display: none;"></div>
+    </div>
+
+    <!-- 排品标签页 -->
+    <div class="tab-content" id="recommendContent">
+      <div class="loading-spinner" id="recommendLoading">
+        <div class="spinner"></div>
+      </div>
+      <div class="recommend-section" id="recommendSection" style="display: none;"></div>
+    </div>
+
+    <!-- 单品利润标签页 -->
+    <div class="tab-content" id="productsContent" style="overflow-y:auto;">
+      <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:15px; font-weight:600;">🏷️ 单品利润追踪</span>
+        <div style="display:flex; gap:8px;">
+          <button onclick="showProductForm()" style="background:var(--accent); color:white; border:none; padding:6px 14px; border-radius:8px; cursor:pointer; font-size:12px;">+ 添加产品</button>
+          <button onclick="showItemForm()" style="background:var(--accent-blue); color:white; border:none; padding:6px 14px; border-radius:8px; cursor:pointer; font-size:12px;">+ 录入销售</button>
+        </div>
+      </div>
+      <div id="productFormArea" style="display:none; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--bg-secondary);"></div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">📊 利润排行</div>
+        <div id="profitRanking"></div>
+        <div style="font-size:13px; color:var(--text-muted); margin:16px 0 8px;">📦 产品目录</div>
+        <div id="productsList"></div>
+      </div>
+      <div class="loading-spinner" id="productsLoading"><div class="spinner"></div></div>
+    </div>
+
+    <!-- 库存标签页 -->
+    <div class="tab-content" id="inventoryContent" style="overflow-y:auto;">
+      <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:15px; font-weight:600;">📦 库存管理</span>
+        <button onclick="showInventoryForm()" style="background:var(--accent); color:white; border:none; padding:6px 14px; border-radius:8px; cursor:pointer; font-size:12px;">+ 添加库存</button>
+      </div>
+      <div id="invFormArea" style="display:none; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--bg-secondary);"></div>
+      <div id="invSummary" style="padding:12px 16px;"></div>
+      <div id="invAlerts" style="padding:0 16px;"></div>
+      <div id="invList" style="padding:8px 16px;"></div>
+      <div class="loading-spinner" id="inventoryLoading"><div class="spinner"></div></div>
+    </div>
+
+    <!-- 导入标签页 -->
+    <div class="tab-content" id="importContent" style="padding:16px; overflow-y:auto;">
+      <div style="max-width:600px; margin:0 auto;">
+        <h3 style="font-size:18px; margin-bottom:16px;">📥 批量导入直播数据</h3>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px; line-height:1.6;">
+          从 Whatnot、TikTok Shop 或其他平台后台导出 CSV 文件，粘贴内容到下方即可自动识别和导入。
+          系统会自动匹配字段映射。
+        </p>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">平台（可选，辅助识别格式）</label>
+          <select id="importPlatform" style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
+            <option value="">自动检测</option>
+            <option value="Whatnot">Whatnot</option>
+            <option value="TikTok Shop">TikTok Shop</option>
+            <option value="其他">其他平台</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">CSV 数据（粘贴或上传）</label>
+          <textarea id="importCsv" rows="10" placeholder="粘贴 CSV 内容到这里...&#10;&#10;示例:&#10;date,total sales,cost,buyers,new buyers,peak viewers,duration&#10;2024-03-15,1250.50,380.00,45,12,89,3.5&#10;2024-03-16,980.75,290.00,38,8,76,2.8"
+            style="width:100%; padding:12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:13px; font-family:monospace; resize:vertical;"></textarea>
+          <div style="margin-top:6px;">
+            <input type="file" id="csvFile" accept=".csv,.txt" onchange="loadCSVFile(event)" style="display:none;">
+            <button onclick="document.getElementById('csvFile').click()" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-secondary); padding:8px 16px; border-radius:8px; cursor:pointer; font-size:12px;">📎 选择 CSV 文件</button>
+          </div>
+        </div>
+
+        <button onclick="doImport()" id="importBtn" style="width:100%; padding:14px; background:var(--accent); color:white; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:opacity .2s;">
+          🚀 开始导入
+        </button>
+
+        <div id="importResult" style="margin-top:16px; display:none;"></div>
+      </div>
+    </div>
+
+    <!-- 通知标签页 -->
+    <div class="tab-content" id="notifContent">
+      <div class="notif-header" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--border);">
+        <span style="font-size:15px; font-weight:600;">📬 通知中心</span>
+        <button onclick="markAllRead()" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--accent); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px;">全部已读</button>
+      </div>
+      <div class="loading-spinner" id="notifLoading">
+        <div class="spinner"></div>
+      </div>
+      <div id="notifList" style="padding:8px; overflow-y:auto; flex:1;"></div>
     </div>
   </div>
 
-  <!-- 图片预览区 -->
-  <div class="image-preview" id="imagePreview">
-    <img class="preview-thumb" id="previewThumb" src="" alt="">
-    <div class="preview-info">
-      <div class="preview-name" id="previewName">image.jpg</div>
-      <div class="preview-hint">发送后自动识别商品 + 全网比价</div>
-    </div>
-    <button class="preview-remove" onclick="removeImage()" title="移除图片">✕</button>
-  </div>
-
-  <!-- 输入区 -->
-  <div class="input-area">
+  <!-- 输入区 (仅聊天标签显示) -->
+  <div class="input-area" id="inputArea">
     <div class="input-wrap">
       <!-- 图片上传按钮 -->
       <div class="img-btn" id="imgBtn" onclick="document.getElementById('imgFile').click()" title="上传商品图片">
@@ -448,7 +835,9 @@ const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
 const CORRECT_HASH = 'nexcart2026';
 const chatHistory = [];
 let isLoading = false;
-let pendingImage = null; // { base64, mediaType, fileName, dataUrl }
+let pendingImage = null;
+let currentTab = 'chat';
+let tabCache = {};
 
 // ============ 密码验证 ============
 function unlock() {
@@ -457,6 +846,7 @@ function unlock() {
     document.getElementById('lockScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     loadStats();
+    setTimeout(checkUnreadNotifications, 1500);
   } else {
     document.getElementById('lockError').textContent = '密码错误，请重试';
     document.getElementById('pwdInput').value = '';
@@ -484,12 +874,302 @@ async function loadStats() {
   }
 }
 
+// ============ 标签切换 ============
+function switchTab(tabName) {
+  if (currentTab === tabName) return;
+
+  // 更新按钮状态
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+
+  // 更新内容显示
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  document.getElementById(tabName + 'Content').classList.add('active');
+
+  // 显示/隐藏快捷栏和输入区
+  const quickBar = document.getElementById('quickBar');
+  const inputArea = document.getElementById('inputArea');
+  if (tabName === 'chat') {
+    quickBar.style.display = 'flex';
+    inputArea.style.display = 'block';
+  } else {
+    quickBar.style.display = 'none';
+    inputArea.style.display = 'none';
+  }
+
+  currentTab = tabName;
+
+  // 加载标签页数据（如果未缓存）
+  if (!tabCache[tabName]) {
+    loadTabData(tabName);
+  }
+}
+
+// ============ 标签页数据加载 ============
+async function loadTabData(tabName) {
+  const endpoints = {
+    alerts: '/alerts',
+    costs: '/costs',
+    customers: '/customers',
+    report: '/report',
+    recommend: '/recommend',
+    products: '/show-items',
+    inventory: '/inventory',
+    notif: '/notifications'
+  };
+
+  if (!endpoints[tabName]) return;
+
+  try {
+    const res = await fetch(WORKER_URL + endpoints[tabName]);
+    const data = await res.json();
+    tabCache[tabName] = data;
+    renderTabContent(tabName, data);
+  } catch (e) {
+    console.error('Tab load error:', e);
+    hideLoadingSpinner(tabName);
+    showErrorBanner('加载数据失败，请重试');
+  }
+}
+
+function hideLoadingSpinner(tabName) {
+  const spinner = document.getElementById(tabName + 'Loading');
+  if (spinner) spinner.style.display = 'none';
+}
+
+function showLoadingSpinner(tabName) {
+  const spinner = document.getElementById(tabName + 'Loading');
+  if (spinner) spinner.style.display = 'flex';
+}
+
+// ============ 渲染标签页内容 ============
+function renderTabContent(tabName, data) {
+  hideLoadingSpinner(tabName);
+
+  if (tabName === 'alerts') {
+    renderAlerts(data);
+  } else if (tabName === 'costs') {
+    renderCosts(data);
+  } else if (tabName === 'customers') {
+    renderCustomers(data);
+  } else if (tabName === 'report') {
+    renderReport(data);
+  } else if (tabName === 'recommend') {
+    renderRecommend(data);
+  } else if (tabName === 'products') {
+    renderProducts(data);
+  } else if (tabName === 'inventory') {
+    renderInventory(data);
+  } else if (tabName === 'notif') {
+    renderNotifications(data);
+  }
+}
+
+function renderAlerts(data) {
+  const grid = document.getElementById('alertsGrid');
+  grid.innerHTML = '';
+  grid.style.display = 'grid';
+
+  const alerts = data.alerts || [];
+  alerts.forEach(alert => {
+    const severity = alert.severity || 'ok';
+    const severityClass = severity === 'critical' ? 'critical' : severity === 'warning' ? 'warning' : '';
+    const change = parseFloat(alert.change) || 0;
+    const changeClass = change > 0 ? 'up' : 'down';
+
+    const card = document.createElement('div');
+    card.className = `alert-card ${severityClass}`;
+    card.innerHTML = `
+      <div class="alert-left">
+        <div class="alert-metric">${alert.metric}</div>
+        <div class="alert-name">${alert.name}</div>
+        <div class="alert-values">
+          当前: ${alert.current} | 基准: ${alert.baseline}
+        </div>
+      </div>
+      <div class="alert-change ${changeClass}">
+        ${change > 0 ? '↑' : '↓'} ${Math.abs(change).toFixed(1)}%
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderCosts(data) {
+  const section = document.getElementById('costSection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const total = data.totalCost || 0;
+  const daily = data.daily || [];
+  const models = data.models || [];
+
+  // 总成本
+  const totalHtml = `
+    <div class="cost-total">
+      <div class="cost-label">总成本</div>
+      <div class="cost-amount">$${total.toFixed(2)}</div>
+      <div class="cost-label">本月消耗</div>
+    </div>
+  `;
+
+  // 日成本图表
+  let dailyHtml = '<div class="cost-chart"><div class="chart-title">日均成本趋势</div>';
+  const maxDaily = Math.max(...daily.map(d => parseFloat(d.cost) || 0), 1);
+  daily.forEach(item => {
+    const percent = (parseFloat(item.cost) / maxDaily) * 100;
+    dailyHtml += `
+      <div class="bar-item">
+        <div class="bar-label">${item.date}</div>
+        <div class="bar-container"><div class="bar-fill" style="width: ${percent}%"></div></div>
+        <div class="bar-value">$${parseFloat(item.cost).toFixed(2)}</div>
+      </div>
+    `;
+  });
+  dailyHtml += '</div>';
+
+  // 模型分布
+  let modelsHtml = '<div class="cost-chart"><div class="chart-title">模型使用分布</div>';
+  const maxModel = Math.max(...models.map(m => parseFloat(m.cost) || 0), 1);
+  models.forEach(item => {
+    const percent = (parseFloat(item.cost) / maxModel) * 100;
+    modelsHtml += `
+      <div class="bar-item">
+        <div class="bar-label">${item.model}</div>
+        <div class="bar-container"><div class="bar-fill" style="width: ${percent}%"></div></div>
+        <div class="bar-value">$${parseFloat(item.cost).toFixed(2)}</div>
+      </div>
+    `;
+  });
+  modelsHtml += '</div>';
+
+  section.innerHTML = totalHtml + dailyHtml + modelsHtml;
+}
+
+function renderCustomers(data) {
+  const section = document.getElementById('customerSection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const overview = data.overview || {};
+  const trend = data.trend || [];
+
+  // 概览卡片
+  let overviewHtml = '<div class="overview-cards">';
+  overviewHtml += `
+    <div class="overview-card">
+      <div class="overview-value">${overview.totalBuyers || 0}</div>
+      <div class="overview-label">总买家数</div>
+    </div>
+    <div class="overview-card">
+      <div class="overview-value">${(overview.repeatRate || 0).toFixed(1)}%</div>
+      <div class="overview-label">复购率</div>
+    </div>
+    <div class="overview-card">
+      <div class="overview-value">$${(overview.ltv || 0).toFixed(2)}</div>
+      <div class="overview-label">生命周期价值</div>
+    </div>
+    <div class="overview-card">
+      <div class="overview-value">$${(overview.aov || 0).toFixed(2)}</div>
+      <div class="overview-label">平均订单值</div>
+    </div>
+  `;
+  overviewHtml += '</div>';
+
+  // 月度趋势
+  let trendHtml = '<div class="cost-chart"><div class="chart-title">月度趋势</div>';
+  const maxTrend = Math.max(...trend.map(t => parseFloat(t.count) || 0), 1);
+  trend.forEach(item => {
+    const percent = (parseFloat(item.count) / maxTrend) * 100;
+    trendHtml += `
+      <div class="bar-item">
+        <div class="bar-label">${item.month}</div>
+        <div class="bar-container"><div class="bar-fill" style="width: ${percent}%"></div></div>
+        <div class="bar-value">${item.count}</div>
+      </div>
+    `;
+  });
+  trendHtml += '</div>';
+
+  section.innerHTML = overviewHtml + trendHtml;
+}
+
+function renderReport(data) {
+  const section = document.getElementById('reportSection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const report = data.report || {};
+
+  // 报告头
+  let html = `
+    <div class="report-header">
+      <div class="report-date">${report.dateRange || '本周'}</div>
+      <div class="report-title">${report.title || '周度经营报告'}</div>
+    </div>
+  `;
+
+  // 关键指标
+  const metrics = report.metrics || [];
+  html += '<div class="metrics-grid">';
+  metrics.forEach(metric => {
+    html += `
+      <div class="metric-card">
+        <div class="metric-value">${metric.value}</div>
+        <div class="metric-label">${metric.label}</div>
+      </div>
+    `;
+  });
+  html += '</div>';
+
+  // 最佳/最差场次
+  if (report.bestShow || report.worstShow) {
+    html += '<div class="shows-list">';
+    html += '<div style="font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">场次表现</div>';
+    if (report.bestShow) {
+      html += `
+        <div class="show-item">
+          <div class="show-name">🏆 ${report.bestShow.name}</div>
+          <div class="show-revenue">${report.bestShow.revenue}</div>
+        </div>
+      `;
+    }
+    if (report.worstShow) {
+      html += `
+        <div class="show-item">
+          <div class="show-name">📉 ${report.worstShow.name}</div>
+          <div class="show-revenue">${report.worstShow.revenue}</div>
+        </div>
+      `;
+    }
+    html += '</div>';
+  }
+
+  // AI 摘要
+  if (report.summary) {
+    html += `<div class="summary-text">${report.summary}</div>`;
+  }
+
+  section.innerHTML = html;
+}
+
+function renderRecommend(data) {
+  const section = document.getElementById('recommendSection');
+  section.innerHTML = '';
+  section.style.display = 'block';
+
+  const recommendation = data.recommendation || '';
+  section.innerHTML = `<div class="recommend-card">${escapeHtml(recommendation).replace(/\n/g, '<br>')}</div>`;
+}
+
 // ============ 图片处理 ============
 function handleImageSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // 限制文件大小 10MB
   if (file.size > 10 * 1024 * 1024) {
     showErrorBanner('图片太大，请选择 10MB 以下的图片');
     event.target.value = '';
@@ -504,13 +1184,11 @@ function handleImageSelect(event) {
 
     pendingImage = { base64, mediaType, fileName: file.name, dataUrl };
 
-    // 显示预览
     document.getElementById('previewThumb').src = dataUrl;
     document.getElementById('previewName').textContent = file.name;
     document.getElementById('imagePreview').classList.add('active');
     document.getElementById('imgBtn').classList.add('has-image');
 
-    // 自动聚焦输入框
     document.getElementById('msgInput').placeholder = '输入问题（可选），或直接发送分析图片...';
     document.getElementById('msgInput').focus();
   };
@@ -522,271 +1200,4 @@ function removeImage() {
   document.getElementById('imagePreview').classList.remove('active');
   document.getElementById('imgBtn').classList.remove('has-image');
   document.getElementById('imgFile').value = '';
-  document.getElementById('msgInput').placeholder = '问我任何问题，或拍照识别商品...';
-}
-
-// ============ 发送消息 ============
-async function sendMessage() {
-  const input = document.getElementById('msgInput');
-  const text = input.value.trim();
-  const hasImage = !!pendingImage;
-
-  if (!text && !hasImage) return;
-  if (isLoading) return;
-
-  isLoading = true;
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = true;
-  input.value = '';
-  autoResize(input);
-
-  // 添加用户消息
-  if (hasImage) {
-    addMessage('user', text || '请分析这个商品', pendingImage.dataUrl);
-  } else {
-    addMessage('user', text);
-  }
-
-  // 添加打字动画
-  const typingId = addTyping(hasImage ? '正在识别商品 + 全网搜索比价...' : null);
-
-  try {
-    let result;
-
-    if (hasImage) {
-      // 图片分析模式
-      const res = await fetch(WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: {
-            base64: pendingImage.base64,
-            mediaType: pendingImage.mediaType,
-          },
-          userMessage: text || '请识别这个商品的品牌、品类，结合历史数据和全网比价给出采购价和售价建议。',
-        }),
-      });
-      result = await res.json();
-
-      // 记录到历史（纯文本形式）
-      chatHistory.push({
-        role: 'user',
-        content: text || '[上传了商品图片进行分析]'
-      });
-
-    } else {
-      // 普通聊天
-      chatHistory.push({ role: 'user', content: text });
-
-      const res = await fetch(WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          messages: chatHistory.slice(-10),
-        }),
-      });
-      result = await res.json();
-    }
-
-    // 移除打字动画
-    removeTyping(typingId);
-
-    let reply = '';
-    if (result.content && result.content[0]) {
-      reply = result.content[0].text;
-    } else if (result.error) {
-      reply = '⚠️ ' + (result.error.message || JSON.stringify(result.error));
-    } else {
-      reply = '⚠️ 返回数据异常，请重试。';
-    }
-
-    if (result._error === 'credit_balance') {
-      showErrorBanner('API 额度不足，请联系管理员充值');
-    }
-
-    // 如果有全网搜索数据，加上标签
-    const hasSearch = result._webSearch || result._productInfo;
-    addMessage('ai', reply, null, hasSearch);
-    chatHistory.push({ role: 'assistant', content: reply });
-
-  } catch (e) {
-    removeTyping(typingId);
-    const errMsg = e.message.includes('Failed to fetch')
-      ? '⚠️ 网络连接失败，请检查网络后重试。'
-      : '⚠️ 请求失败: ' + e.message;
-    addMessage('ai', errMsg);
-    showErrorBanner('网络连接异常，请检查网络');
-  }
-
-  // 清理图片
-  removeImage();
-
-  isLoading = false;
-  btn.disabled = false;
-  input.focus();
-}
-
-// ============ 快捷提问 ============
-function ask(question) {
-  document.getElementById('msgInput').value = question;
-  sendMessage();
-}
-
-// ============ 消息渲染 ============
-function addMessage(role, text, imageUrl, hasSearch) {
-  const area = document.getElementById('chatArea');
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-
-  const avatar = role === 'ai' ? '📊' : '👤';
-  const formatted = role === 'ai' ? formatMarkdown(text) : escapeHtml(text);
-
-  let imageHtml = '';
-  if (imageUrl) {
-    imageHtml = `<img class="chat-img" src="${imageUrl}" onclick="openLightbox(this.src)" alt="商品图片">`;
-  }
-
-  let searchBadge = '';
-  if (hasSearch && role === 'ai') {
-    searchBadge = '<div class="search-badge">已搜索全网比价</div>';
-  }
-
-  div.innerHTML = `
-    <div class="msg-avatar">${avatar}</div>
-    <div class="msg-bubble">
-      ${imageHtml}
-      ${searchBadge}
-      ${formatted}
-    </div>
-  `;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}
-
-function addTyping(statusText) {
-  const area = document.getElementById('chatArea');
-  const id = 'typing-' + Date.now();
-  const div = document.createElement('div');
-  div.className = 'msg ai';
-  div.id = id;
-  div.innerHTML = `
-    <div class="msg-avatar">📊</div>
-    <div class="msg-bubble">
-      <div class="typing-indicator">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-      </div>
-      ${statusText ? `<div class="typing-status">${statusText}</div>` : ''}
-    </div>
-  `;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-  return id;
-}
-
-function removeTyping(id) {
-  const el = document.getElementById(id);
-  if (el) el.remove();
-}
-
-// ============ 图片灯箱 ============
-function openLightbox(src) {
-  document.getElementById('lightboxImg').src = src;
-  document.getElementById('lightbox').classList.add('active');
-}
-function closeLightbox() {
-  document.getElementById('lightbox').classList.remove('active');
-}
-
-// ============ Markdown 解析 ============
-function formatMarkdown(text) {
-  let html = escapeHtml(text);
-
-  // 表格
-  html = html.replace(/\n?\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (match, header, body) => {
-    const ths = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
-    const rows = body.trim().split('\n').map(row => {
-      const tds = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
-      return `<tr>${tds}</tr>`;
-    }).join('');
-    return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
-  });
-
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^# (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-  html = html.replace(/<\/ul>\s*<ul>/g, '');
-  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br>');
-
-  return `<p>${html}</p>`;
-}
-
-function escapeHtml(text) {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-  return text.replace(/[&<>"]/g, c => map[c]);
-}
-
-// ============ 错误提示 ============
-function showErrorBanner(msg) {
-  const existing = document.querySelector('.error-banner');
-  if (existing) existing.remove();
-
-  const banner = document.createElement('div');
-  banner.className = 'error-banner';
-  banner.textContent = msg;
-  document.body.appendChild(banner);
-  setTimeout(() => banner.remove(), 5000);
-}
-
-// ============ 输入交互 ============
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-}
-
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
-
-// ============ 键盘快捷键 ============
-document.addEventListener('keydown', (e) => {
-  // ESC 关闭灯箱
-  if (e.key === 'Escape') closeLightbox();
-  // Ctrl+V 粘贴图片
-  if (e.ctrlKey && e.key === 'v') {
-    // 由 paste 事件处理
-  }
-});
-
-// 支持粘贴图片
-document.addEventListener('paste', (e) => {
-  const items = e.clipboardData?.items;
-  if (!items) return;
-  for (let item of items) {
-    if (item.type.startsWith('image/')) {
-      e.preventDefault();
-      const file = item.getAsFile();
-      const fakeEvent = { target: { files: [file] } };
-      handleImageSelect(fakeEvent);
-      break;
-    }
-  }
-});
-
-// ============ 初始化 ============
-document.getElementById('pwdInput').focus();
-</script>
-</body>
-</html>
+  document.getElementById('msgInput').placeholder = '问我任�
