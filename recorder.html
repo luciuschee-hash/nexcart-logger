@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="直播记录">
+<meta name="theme-color" content="#1D9E75">
+<meta name="version" content="3.0.0">
+<title>直播成交记录 · Nexcart Ops</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --green: #1D9E75; --green-dark: #0F6E56; --green-light: #E1F5EE;
+  --red: #E24B4A; --red-light: #FCEBEB;
+  --amber: #BA7517; --amber-light: #FAEEDA;
+  --bg: #F5F3EF; --card: #FFFFFF;
+  --text: #1A1A1A; --muted: #888; --border: #E5E2DB;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+       background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+.topbar { position: sticky; top: 0; z-index: 100; background: var(--green); color: white;
+          padding: calc(var(--safe-top) + 12px) 16px 12px;
+          display: flex; align-items: center; justify-content: space-between;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.topbar h1 { font-size: 17px; font-weight: 600; }
+.topbar-status { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.icon-btn { background: rgba(255,255,255,0.2); border: none; color: white;
+            border-radius: 8px; padding: 7px 11px; font-size: 13px; cursor: pointer; }
+.tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border);
+        position: sticky; top: 62px; z-index: 90; }
+.tab { flex: 1; padding: 13px 0; text-align: center; font-size: 14px;
+       color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; }
+.tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+.page { display: none; padding: 12px 12px calc(var(--safe-bottom) + 20px); }
+.page.active { display: block; }
+.card { background: var(--card); border-radius: 14px; padding: 14px 16px;
+        margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.card-title { font-size: 12px; color: var(--muted); text-transform: uppercase;
+              letter-spacing: 0.04em; margin-bottom: 10px; }
+.platform-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.platform-btn { flex: 1; padding: 10px; border-radius: 10px;
+                border: 1.5px solid var(--border); background: var(--card);
+                color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; }
+.platform-btn.active { border-color: var(--green); color: var(--green-dark); background: var(--green-light); }
+.step-hint { display: flex; gap: 5px; margin-bottom: 10px; }
+.step { flex: 1; background: var(--card); border-radius: 10px; padding: 8px 4px;
+        text-align: center; font-size: 10px; color: var(--muted); line-height: 1.5;
+        border: 1.5px solid transparent; }
+.step.active { border-color: var(--green); color: var(--green-dark); background: var(--green-light); font-weight: 600; }
+.step-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+.record-btn { width: 100%; padding: 30px 18px; border-radius: 20px; border: none;
+              font-size: 24px; font-weight: 800; cursor: pointer;
+              transition: transform .1s, box-shadow .15s;
+              user-select: none; -webkit-user-select: none; margin-bottom: 10px; }
+.record-btn.idle { background: var(--green); color: white;
+                   box-shadow: 0 6px 24px rgba(29,158,117,0.4); }
+.record-btn.idle:active { transform: scale(0.97); }
+.record-btn.recording { background: var(--red); color: white;
+                         box-shadow: 0 6px 24px rgba(226,75,74,0.45);
+                         animation: pulsebtn 1s infinite; }
+.record-btn.processing { background: #999; color: white; box-shadow: none; }
+@keyframes pulsebtn { 0%,100% { transform: scale(1); } 50% { transform: scale(0.975); } }
+.transcript-box { background: var(--bg); border-radius: 10px; padding: 12px;
+                  font-size: 14px; line-height: 1.6; min-height: 50px; color: var(--text); }
+.transcript-box.placeholder { color: var(--muted); font-style: italic; }
+.fields-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+.field { background: var(--bg); border-radius: 10px; padding: 8px 4px; text-align: center; }
+.field-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.field-value { font-size: 14px; font-weight: 700; color: var(--green-dark); }
+.field-value.empty { color: #CCC; font-weight: 400; font-size: 20px; }
+.confidence { font-size: 11px; text-align: right; margin-top: 8px;
+              padding: 4px 8px; border-radius: 6px; display: none; }
+.confidence.high   { display:block; background: var(--green-light); color: var(--green-dark); }
+.confidence.medium { display:block; background: var(--amber-light); color: var(--amber); }
+.confidence.low    { display:block; background: var(--red-light);   color: var(--red); }
+.brand-picker { display: none; margin-top: 10px; padding: 10px; background: var(--amber-light); border-radius: 10px; }
+.brand-picker.show { display: block; }
+.brand-picker-label { font-size: 12px; color: var(--amber); margin-bottom: 8px; font-weight: 600; }
+.brand-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.brand-chip { background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
+              padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text); }
+.brand-chip:active { background: var(--green-light); border-color: var(--green); }
+.price-warn { display: none; margin-top: 8px; padding: 8px 10px; background: var(--red-light);
+              color: var(--red); border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.price-warn.show { display: block; }
+.countdown-wrap { margin: 10px 0 0; }
+.countdown-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.countdown-fill { height: 100%; background: var(--green); border-radius: 3px; width: 100%; transition: width 1s linear; }
+.countdown-txt { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
+.action-row { display: flex; gap: 8px; margin-top: 12px; }
+.btn { padding: 12px 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; }
+.btn-skip   { background: var(--bg); color: var(--muted); }
+.btn-manual { background: var(--bg); color: var(--muted); }
+.btn-confirm { flex: 1; background: var(--green); color: white;
+               font-size: 15px; font-weight: 700; opacity: .35; pointer-events: none; }
+.btn-confirm.ready { opacity: 1; pointer-events: auto; }
+.success-flash { position: fixed; inset: 0; background: rgba(29,158,117,0.18);
+                 z-index: 300; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.success-flash.show { opacity: 1; }
+.undo-bar { position: fixed; bottom: calc(var(--safe-bottom) + 70px); left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 10px 18px; border-radius: 24px;
+            font-size: 14px; display: none; z-index: 250; gap: 12px; align-items: center; }
+.undo-bar.show { display: flex; }
+.undo-bar button { background: var(--green); color: white; border: none; border-radius: 14px;
+                   padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 10px; }
+.stat { background: var(--card); border-radius: 12px; padding: 12px 6px; text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.stat-num   { font-size: 22px; font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.record-item { display: flex; align-items: center; padding: 11px 0;
+               border-bottom: 1px solid var(--border); gap: 10px; cursor: pointer; }
+.record-item:last-child { border-bottom: none; }
+.record-item:active { background: var(--bg); }
+.record-pull { background: var(--green-light); color: var(--green-dark);
+               border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 600; flex: 0 0 auto; }
+.record-info { flex: 1; min-width: 0; }
+.record-main { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.record-sub  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.record-price { font-size: 15px; font-weight: 700; color: var(--green-dark); flex: 0 0 auto; }
+.record-time  { font-size: 11px; color: var(--muted); flex: 0 0 auto; }
+.del-btn { background: none; border: none; color: #DDD; font-size: 20px; cursor: pointer;
+           padding: 0 2px; flex: 0 0 auto; }
+.setting-group { margin-bottom: 16px; }
+.setting-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+.setting-input { width: 100%; padding: 12px; border-radius: 10px;
+                 border: 1.5px solid var(--border); font-size: 14px;
+                 background: var(--bg); color: var(--text); }
+.setting-input:focus { outline: none; border-color: var(--green); }
+.save-btn { width: 100%; padding: 15px; background: var(--green); color: white;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.hint { font-size: 12px; color: var(--amber); background: var(--amber-light);
+        border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.6; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.toggle-label { font-size: 14px; }
+.toggle-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.toggle { position: relative; width: 44px; height: 26px; flex: 0 0 auto; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: #CCC; border-radius: 13px; cursor: pointer; transition: .2s; }
+.slider:before { content:""; position:absolute; width:20px; height:20px; left:3px; top:3px;
+                 background:white; border-radius:50%; transition:.2s; }
+.toggle input:checked + .slider { background: var(--green); }
+.toggle input:checked + .slider:before { transform: translateX(18px); }
+.toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+         background: #1A1A1A; color: white; padding: 11px 22px; border-radius: 22px;
+         font-size: 15px; z-index: 999; opacity: 0; transition: opacity .25s;
+         pointer-events: none; max-width: 90vw; text-align: center; }
+.toast.show { opacity: 1; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+                 z-index: 200; display: none; align-items: flex-end; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: 20px 20px 0 0;
+         padding: 20px 20px calc(var(--safe-bottom) + 20px); width: 100%; }
+.modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.modal-field label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.modal-field input { width: 100%; padding: 10px; border-radius: 8px;
+                     border: 1.5px solid var(--border); font-size: 15px;
+                     background: var(--bg); color: var(--text); }
+.modal-field input:focus { outline: none; border-color: var(--green); }
+.modal-btns { display: flex; gap: 8px; }
+.modal-cancel { flex: 1; padding: 13px; background: var(--bg); border: none;
+                border-radius: 10px; font-size: 15px; cursor: pointer; color: var(--muted); }
+.modal-save { flex: 2; padding: 13px; background: var(--green); border: none;
+              border-radius: 10px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; }
+.modal-delete { flex: 1; padding: 13px; background: var(--red-light); color: var(--red);
+                border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* Login overlay */
+.login-overlay { position: fixed; inset: 0; background: var(--green); display: none;
+                 align-items: center; justify-content: center; z-index: 1000;
+                 flex-direction: column; padding: 20px; }
+.login-overlay.show { display: flex; }
+.login-overlay h2 { color: white; margin-bottom: 24px; font-size: 22px; }
+.login-input { width: 280px; max-width: 90vw; padding: 14px; border-radius: 12px;
+               border: none; font-size: 18px; text-align: center; margin-bottom: 12px; }
+.login-btn { width: 280px; max-width: 90vw; padding: 14px; border: none; border-radius: 12px;
+             background: var(--green-dark); color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
+.login-err { color: white; font-size: 13px; margin-top: 8px; opacity: 0.9; min-height: 20px; }
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <h2>📦 直播成交记录</h2>
+  <input class="login-input" id="loginPwd" type="password" placeholder="请输入访问密码" autofocus>
+  <button class="login-btn" onclick="tryLogin()">进入</button>
+  <div class="login-err" id="loginErr"></div>
+</div>
+
+<div class="success-flash" id="successFlash"></div>
+
+<div class="topbar">
+  <div>
+    <h1>直播成交记录</h1>
+    <div class="topbar-status" id="topStatus">待机</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="icon-btn" onclick="showTab('history')">记录</button>
+    <button class="icon-btn" onclick="showTab('settings')">设置</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('live')"     id="tab-live">直播</div>
+  <div class="tab"        onclick="showTab('history')"  id="tab-history">记录</div>
+  <div class="tab"        onclick="showTab('settings')" id="tab-settings">设置</div>
+</div>
+
+<!-- 直播页 -->
+<div class="page active" id="page-live">
+
+  <div class="platform-row">
+    <button class="platform-btn active" id="btn-whatnot" onclick="setPlatform('Whatnot')">Whatnot</button>
+    <button class="platform-btn"        id="btn-tiktok"  onclick="setPlatform('TikTok Live')">TikTok Live</button>
+  </div>
+
+  <div class="step-hint">
+    <div class="step active" id="step1"><span class="step-icon">🟢</span>点绿色</div>
+    <div class="step"        id="step2"><span class="step-icon">🎙</span>说信息</div>
+    <div class="step"        id="step3"><span class="step-icon">🔴</span>点红色</div>
+    <div class="step"        id="step4"><span class="step-icon">✅</span>自动记录</div>
+  </div>
+
+  <button class="record-btn idle" id="recordBtn" onclick="toggleRecord()">
+    🎙&nbsp; 开始录音
+  </button>
+
+  <div class="transcript-box placeholder" id="transcriptBox">等待录音...</div>
+
+  <div class="card" style="margin-top:10px">
+    <div class="card-title">识别结果</div>
+    <div class="fields-grid">
+      <div class="field"><div class="field-label">Pull #</div><div class="field-value empty" id="f-pull">—</div></div>
+      <div class="field"><div class="field-label">品牌</div><div class="field-value empty" id="f-brand">—</div></div>
+      <div class="field"><div class="field-label">鞋型</div><div class="field-value empty" id="f-type">—</div></div>
+      <div class="field"><div class="field-label">尺码</div><div class="field-value empty" id="f-size">—</div></div>
+      <div class="field"><div class="field-label">价格</div><div class="field-value empty" id="f-price">—</div></div>
+    </div>
+    <div class="confidence" id="confidenceBadge"></div>
+    <div class="brand-picker" id="brandPicker">
+      <div class="brand-picker-label">⚠️ 品牌没识别出来，点一下选：</div>
+      <div class="brand-chips" id="brandChips"></div>
+    </div>
+    <div class="price-warn" id="priceWarn"></div>
+    <div class="countdown-wrap" id="countdownWrap" style="display:none">
+      <div class="countdown-bar"><div class="countdown-fill" id="countdownFill"></div></div>
+      <div class="countdown-txt" id="countdownTxt">3 秒后自动确认...</div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-skip"   onclick="skipEntry()">跳过</button>
+      <button class="btn btn-manual" onclick="openManual()">手动</button>
+      <button class="btn btn-confirm" id="confirmBtn" onclick="confirmEntry()">✓ 确认记录</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 记录页 -->
+<div class="page" id="page-history">
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">成交数</div></div>
+    <div class="stat"><div class="stat-num" id="statRevenue">$0</div><div class="stat-label">总金额</div></div>
+    <div class="stat"><div class="stat-num" id="statAvg">$0</div><div class="stat-label">均价</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin:0">本场记录（点任一行可改）</div>
+      <button onclick="exportCSV()" style="background:var(--bg);border:none;color:var(--green-dark);
+              font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;cursor:pointer">导出 CSV</button>
+    </div>
+    <div id="recordsList"><div style="color:var(--muted);font-size:14px;text-align:center;padding:20px">暂无记录</div></div>
+  </div>
+</div>
+
+<!-- 设置页 -->
+<div class="page" id="page-settings">
+  <div class="hint">
+    领夹麦插入手机后系统自动切换，无需额外设置。<br>
+    录音时请保持屏幕常亮（设置 → 显示与亮度 → 自动锁定 → 永不）。
+  </div>
+  <div class="card">
+    <div class="card-title">本场信息</div>
+    <div style="font-size:13px;color:var(--muted);line-height:2.2">
+      场次 ID：<span id="infoSession" style="color:var(--text)">—</span><br>
+      已记录：<span id="infoCount" style="color:var(--text)">0 条</span><br>
+      连接状态：<span id="infoConn">检查中...</span><br>
+      <span id="queueBadge" style="display:none;color:var(--amber);font-weight:600"></span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">行为设置</div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">自动确认</div>
+        <div class="toggle-sub">停止录音识别后 3 秒自动记录</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoConfirmToggle" checked onchange="onAutoConfirmChange()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">价格异常警告</div>
+        <div class="toggle-sub">价格远超本品类历史均价时弹窗确认</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="priceWarnToggle" checked onchange="onPriceWarnChange()">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">账号</div>
+    <button class="save-btn" style="background:var(--red)" onclick="logout()">退出登录</button>
+  </div>
+  <div style="text-align:center;color:var(--muted);font-size:11px;margin-top:20px">
+    Nexcart Ops · 录音组件 v3.0
+  </div>
+</div>
+
+<!-- 编辑/手动 弹窗 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modalTitle">手动录入</h3>
+    <div class="modal-grid">
+      <div class="modal-field"><label>Pull #</label><input id="m-pull" placeholder="#3"></div>
+      <div class="modal-field"><label>品牌</label><input id="m-brand" placeholder="Cape Robin"></div>
+      <div class="modal-field"><label>鞋型</label><input id="m-type" placeholder="Sneakers"></div>
+      <div class="modal-field"><label>尺码</label><input id="m-size" placeholder="US 9"></div>
+      <div class="modal-field" style="grid-column:span 2"><label>成交价</label><input id="m-price" placeholder="$45"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">取消</button>
+      <button class="modal-delete" id="m-delete-btn" style="display:none" onclick="deleteCurrent()">删除</button>
+      <button class="modal-save"   onclick="saveModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 撤销条 -->
+<div class="undo-bar" id="undoBar">
+  <span id="undoText">已记录 #3</span>
+  <button onclick="undoLast()">↶ 撤销</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// Configuration
+// ============================================================
+const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
+const PASSWORD_STORAGE_KEY = 'nexcart_pwd';
+const APP_VERSION = '3.0.0';
+
+// ============================================================
+// Login gate
+// ============================================================
+function getPassword() {
+  return sessionStorage.getItem(PASSWORD_STORAGE_KEY) || localStorage.getItem(PASSWORD_STORAGE_KEY);
+}
+function setPassword(pwd, persist) {
+  sessionStorage.setItem(PASSWORD_STORAGE_KEY, pwd);
+  if (persist) localStorage.setItem(PASSWORD_STORAGE_KEY, pwd);
+}
+function logout() {
+  sessionStorage.removeItem(PASSWORD_STORAGE_KEY);
+  localStorage.removeItem(PASSWORD_STORAGE_KEY);
+  location.reload();
+}
+async function tryLogin() {
+  const pwd = document.getElementById('loginPwd').value.trim();
+  const errEl = document.getElementById('loginErr');
+  if (!pwd) { errEl.textContent = '请输入密码'; return; }
+  errEl.textContent = '验证中...';
+  // ping any endpoint with the password to validate
+  try {
+    const r = await fetch(WORKER_URL + '/brand-aliases', {
+      headers: { 'X-Password': pwd }
+    });
+    if (r.status === 401) { errEl.textContent = '密码错误'; return; }
+    if (!r.ok) { errEl.textContent = '服务器异常 (' + r.status + ')，请稍后重试'; return; }
+    setPassword(pwd, true);
+    document.getElementById('loginOverlay').classList.remove('show');
+    bootApp();
+  } catch (e) {
+    errEl.textContent = '无法连接服务器，请检查网络';
+  }
+}
+function showLogin() {
+  document.getElementById('loginOverlay').classList.add('show');
+  setTimeout(function(){ document.getElementById('loginPwd').focus(); }, 100);
+}
+
+// ============================================================
+// Wrapped fetch (always send X-Password)
+// ============================================================
+function api(path, options) {
+  options = options || {};
+  options.headers = Object.assign({}, options.headers || {}, { 'X-Password': getPassword() || '' });
+  return fetch(WORKER_URL + path, options);
+}
+function apiWithRetry(path, options, maxRetries) {
+  maxRetries = maxRetries || 3;
+  var attempt = 0;
+  function tryOnce() {
+    return new Promise(function(resolve, reject) {
+      var controller = new AbortController();
+      var to = setTimeout(function(){ controller.abort(); }, 30000);
+      api(path, Object.assign({}, options, { signal: controller.signal }))
+        .then(function(res) {
+          clearTimeout(to);
+          if (res.status === 401) { logout(); reject(new Error('unauthorized')); return; }
+          if (res.ok) { resolve(res); return; }
+          if (res.status >= 500 && attempt < maxRetries - 1) {
+            attempt++;
+            setTimeout(function(){ tryOnce().then(resolve, reject); }, 1000 * attempt);
+            return;
+          }
+          resolve(res);
+        }).catch(function(e) {
+          clearTimeout(to);
+          if (attempt < maxRetries - 1) {
+            attempt++;
+            setTimeout(function(){ tryOnce().then(resolve, reject); }, 1500 * attempt);
+          } else {
+            reject(e);
+          }
+        });
+    });
+  }
+  return tryOnce();
+}
+
+// ============================================================
+// State
+// ============================================================
+var platform    = localStorage.getItem('platform')  || 'Whatnot';
+var autoConfirm = localStorage.getItem('autoConfirm') !== 'false';
+var priceWarnEnabled = localStorage.getItem('priceWarn') !== 'false';
+var SESSION_ID  = '';   // computed in bootApp
+var records=[], currentData=null, countdownJob=null;
+var mediaRecorder=null, audioChunks=[], isRecording=false;
+var topBrands = [];
+var brandAliases = [];
+var priceMedians = {};   // key = `${brand_normalized||brand}|${shoe_type}` → median
+var undoStack = [];      // list of last 5 saved records (in-memory)
+var editingId = null;    // when modal is editing an existing row
+
+// ============================================================
+// Session ID = YYYYMMDD_Platform (persistent for the day)
+// ============================================================
+function computeSessionId(plat) {
+  var d = new Date();
+  var s = d.getFullYear().toString()
+        + String(d.getMonth()+1).padStart(2,'0')
+        + String(d.getDate()).padStart(2,'0');
+  return s + '_' + plat.replace(/\s+/g, '');
+}
+
+// ============================================================
+// Offline queue (localStorage)
+// ============================================================
+var QUEUE_KEY = 'pending_sync_queue';
+function getQueue() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
+function enqueue(path, payload) {
+  var q = getQueue();
+  q.push({ path: path, payload: payload, ts: Date.now(), retries: 0 });
+  saveQueue(q);
+  updateQueueBadge();
+}
+function updateQueueBadge() {
+  var q = getQueue();
+  var el = document.getElementById('queueBadge');
+  if (el) {
+    if (q.length > 0) { el.textContent = '⚠ ' + q.length + ' 条待同步'; el.style.display = 'inline'; }
+    else { el.style.display = 'none'; }
+  }
+}
+function flushQueue() {
+  var q = getQueue();
+  if (!q.length) return Promise.resolve();
+  var remaining = [];
+  var chain = Promise.resolve();
+  q.forEach(function(item) {
+    chain = chain.then(function() {
+      return apiWithRetry(item.path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.payload)
+      }, 2).then(function(res) {
+        if (!res.ok) { item.retries++; if (item.retries < 10) remaining.push(item); }
+      }).catch(function() {
+        item.retries++;
+        if (item.retries < 10) remaining.push(item);
+      });
+    });
+  });
+  return chain.then(function() {
+    saveQueue(remaining);
+    updateQueueBadge();
+    if (remaining.length === 0 && q.length > 0) showToast('✓ 离线数据已全部同步');
+  });
+}
+
+// ============================================================
+// Boot
+// ============================================================
+window.addEventListener('load', function() {
+  if (!getPassword()) { showLogin(); return; }
+  // verify the saved password is still valid
+  fetch(WORKER_URL + '/brand-aliases', { headers: { 'X-Password': getPassword() } })
+    .then(function(r){
+      if (r.status === 401) { logout(); return; }
+      if (!r.ok) { document.getElementById('infoConn').textContent = '⚠ 服务器异常'; }
+      bootApp();
+    })
+    .catch(function(){ bootApp(); /* offline boot */ });
+});
+
+function bootApp() {
+  document.getElementById('autoConfirmToggle').checked = autoConfirm;
+  document.getElementById('priceWarnToggle').checked = priceWarnEnabled;
+  setPlatform(platform, false);
+  SESSION_ID = computeSessionId(platform);
+  document.getElementById('infoSession').textContent = SESSION_ID;
+  loadRecords();
+  loadBrandsAndPrices();
+  updateQueueBadge();
+  flushQueue();
+  setInterval(flushQueue, 60000);  // every minute, try to flush
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/nexcart-logger/recorder-sw.js?v=' + APP_VERSION)
+      .then(function(reg){ reg.update(); })
+      .catch(function(){
+        // fall back to root path if hosted differently
+        navigator.serviceWorker.register('./recorder-sw.js?v=' + APP_VERSION).catch(function(){});
+      });
+  }
+}
+
+function loadBrandsAndPrices() {
+  api('/brand-aliases').then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j) {
+      if (!j) return;
+      brandAliases = j.aliases || [];
+      topBrands = j.topBrands || [];
+      renderBrandChips();
+    }).catch(function(){});
+}
+
+function renderBrandChips() {
+  var el = document.getElementById('brandChips');
+  if (!el) return;
+  if (!topBrands.length) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--muted)">（无历史品牌数据）</span>';
+    return;
+  }
+  el.innerHTML = topBrands.map(function(b){
+    var name = b.brand.replace(/'/g, "&#39;");
+    return '<span class="brand-chip" onclick="pickBrand(\'' + name + '\')">' + name + '</span>';
+  }).join('');
+}
+
+function pickBrand(brand) {
+  if (!currentData) return;
+  currentData.brand = brand;
+  setField('f-brand', brand);
+  document.getElementById('brandPicker').classList.remove('show');
+  document.getElementById('confirmBtn').classList.add('ready');
+  // re-evaluate price warning since brand changed
+  evaluatePriceWarning();
+  if (autoConfirm) startCountdown(3);
+}
+
+// ============================================================
+// UI
+// ============================================================
+function showTab(n) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById('page-'+n).classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+  if(n==='history') renderRecords();
+}
+function setPlatform(p, save) {
+  if(save===undefined) save=true;
+  var changed = (platform !== p);
+  platform = p;
+  if(save) localStorage.setItem('platform', p);
+  document.getElementById('btn-whatnot').classList.toggle('active', p==='Whatnot');
+  document.getElementById('btn-tiktok').classList.toggle('active', p==='TikTok Live');
+  if (changed) {
+    SESSION_ID = computeSessionId(platform);
+    var infoSession = document.getElementById('infoSession');
+    if (infoSession) infoSession.textContent = SESSION_ID;
+    loadRecords();
+  }
+}
+function onAutoConfirmChange() {
+  autoConfirm = document.getElementById('autoConfirmToggle').checked;
+  localStorage.setItem('autoConfirm', autoConfirm);
+}
+function onPriceWarnChange() {
+  priceWarnEnabled = document.getElementById('priceWarnToggle').checked;
+  localStorage.setItem('priceWarn', priceWarnEnabled);
+}
+function setStep(n) {
+  for(var i=1;i<=4;i++) document.getElementById('step'+i).classList.toggle('active', i===n);
+}
+function haptic(t) {
+  if(!navigator.vibrate) return;
+  if(t==='start')   navigator.vibrate(50);
+  if(t==='stop')    navigator.vibrate(30);
+  if(t==='success') navigator.vibrate([60,30,120]);
+  if(t==='error')   navigator.vibrate([100,50,100]);
+}
+function flashSuccess() {
+  var el=document.getElementById('successFlash');
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 350);
+}
+
+// ============================================================
+// Recording
+// ============================================================
+function toggleRecord() {
+  isRecording ? stopRecording() : startRecording();
+}
+function startRecording() {
+  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(stream) {
+    audioChunks=[];
+    var mime = ['audio/webm;codecs=opus','audio/webm','audio/mp4',''].find(function(m){return !m||MediaRecorder.isTypeSupported(m)});
+    mediaRecorder = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = function(e){ if(e.data.size>0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = processAudio;
+    mediaRecorder.start();
+    isRecording=true;
+    haptic('start'); setStep(2);
+    var btn=document.getElementById('recordBtn');
+    btn.className='record-btn recording';
+    btn.textContent='🔴  停止录音';
+    setStatus('🔴 录音中');
+    var box=document.getElementById('transcriptBox');
+    box.textContent='正在录音，说完后点停止...';
+    box.classList.remove('placeholder');
+  }).catch(function(e){
+    haptic('error'); showToast('无法访问麦克风：'+e.message);
+  });
+}
+function stopRecording() {
+  if(!mediaRecorder||mediaRecorder.state==='inactive') return;
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(function(t){t.stop()});
+  isRecording=false;
+  haptic('stop'); setStep(3);
+  var btn=document.getElementById('recordBtn');
+  btn.className='record-btn processing';
+  btn.textContent='⏳  识别中...';
+  setStatus('⏳ 识别中');
+  document.getElementById('transcriptBox').textContent='正在识别，请稍候...';
+}
+
+function finishProcessing() {
+  var btn=document.getElementById('recordBtn');
+  btn.className='record-btn idle';
+  btn.textContent='🎙\u00A0 开始录音';
+  setStatus('待机');
+}
+
+function processAudio() {
+  var mime = audioChunks[0] && audioChunks[0].type ? audioChunks[0].type : 'audio/webm';
+  var blob = new Blob(audioChunks, {type: mime});
+
+  // Step 1: transcribe (audio -> text)
+  api('/transcribe', { method:'POST', headers:{'Content-Type':mime}, body:blob })
+    .then(function(res){
+      if (!res.ok) { return res.text().then(function(t){ throw new Error('转录失败:'+res.status+' '+t.slice(0,80)); }); }
+      return res.json();
+    })
+    .then(function(j) {
+      var box = document.getElementById('transcriptBox');
+      var text = (j.transcript || '').trim();
+      if (!text) {
+        box.textContent='未识别到内容，请重试';
+        box.classList.add('placeholder');
+        setStep(1); finishProcessing(); return;
+      }
+      box.textContent = text;
+      box.classList.remove('placeholder');
+      setStatus('🤖 提取信息中');
+      // Step 2: extract structured data
+      return api('/extract', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ text: text })
+      }).then(function(res2){ return res2.json(); }).then(function(j2) {
+        if (j2 && j2.data) onDetected(j2.data);
+        else setStep(1);
+        finishProcessing();
+      }).catch(function(){
+        showToast('提取失败，但文字已识别——可点"手动"录入');
+        finishProcessing();
+      });
+    })
+    .catch(function(e) {
+      haptic('error');
+      showToast('网络异常：' + e.message);
+      document.getElementById('transcriptBox').textContent = '连接失败 —— 请检查网络后重试';
+      document.getElementById('transcriptBox').classList.add('placeholder');
+      setStep(1);
+      finishProcessing();
+    });
+}
+
+function onDetected(data) {
+  if (data.is_correction && records.length) {
+    correctLast(data.correction_field, data.correction_value);
+    return;
+  }
+  if (!data.is_sold) { setStep(1); return; }
+  cancelCountdown(); currentData = data; setStep(4);
+  setField('f-pull', data.pull);
+  setField('f-brand', data.brand);
+  setField('f-type', data.shoe_type);
+  setField('f-size', data.size);
+  setField('f-price', data.price);
+
+  var badge = document.getElementById('confidenceBadge');
+  var cm = {
+    high:['high','识别置信度：高 ✓'],
+    medium:['medium','识别置信度：中 — 请核对'],
+    low:['low','识别置信度：低 ⚠ 请核对']
+  };
+  var pair = cm[data.confidence] || ['',''];
+  badge.className = 'confidence ' + pair[0];
+  badge.textContent = pair[1];
+
+  // Brand picker fallback
+  var picker = document.getElementById('brandPicker');
+  if (!data.brand) {
+    picker.classList.add('show');
+    document.getElementById('confirmBtn').classList.remove('ready');
+    return;  // wait for user to pick a brand
+  } else {
+    picker.classList.remove('show');
+  }
+
+  document.getElementById('confirmBtn').classList.add('ready');
+  evaluatePriceWarning();
+  if (autoConfirm) startCountdown(3);
+}
+
+function evaluatePriceWarning() {
+  var warn = document.getElementById('priceWarn');
+  warn.classList.remove('show');
+  if (!priceWarnEnabled || !currentData || !currentData.price) return;
+  var priceNum = parseFloat(String(currentData.price).replace(/[$,]/g,''));
+  if (!Number.isFinite(priceNum)) return;
+  // local outlier: compare against this session's records of same brand
+  var key = (currentData.brand_normalized || currentData.brand || '').toLowerCase();
+  if (!key) return;
+  var sameBrandPrices = records.map(function(r){
+    var p = parseFloat(String(r.price||'').replace(/[$,]/g,''));
+    if (!Number.isFinite(p)) return null;
+    var rk = (r.brand_normalized || r.brand || '').toLowerCase();
+    return (rk === key) ? p : null;
+  }).filter(function(x){ return x !== null; });
+  if (sameBrandPrices.length < 3) {
+    // not enough data this session; only warn on absurd absolute values
+    if (priceNum >= 200) {
+      warn.textContent = '⚠ 价格 $' + priceNum + ' 看起来偏高，确认无误？';
+      warn.classList.add('show');
+    }
+    return;
+  }
+  sameBrandPrices.sort(function(a,b){return a-b;});
+  var median = sameBrandPrices[Math.floor(sameBrandPrices.length/2)];
+  if (priceNum > 3 * median && priceNum >= 30) {
+    warn.textContent = '⚠ 价格 $' + priceNum + ' 远超本场同品牌中位数 $' + median + '，确认无误？';
+    warn.classList.add('show');
+  }
+}
+
+function setField(id, val) {
+  var el = document.getElementById(id);
+  if (val) { el.textContent = val; el.className = 'field-value filled'; }
+  else     { el.textContent = '—'; el.className = 'field-value empty'; }
+}
+
+function startCountdown(secs) {
+  var wrap = document.getElementById('countdownWrap');
+  var fill = document.getElementById('countdownFill');
+  var txt = document.getElementById('countdownTxt');
+  wrap.style.display='block';
+  fill.style.transition='none'; fill.style.width='100%';
+  setTimeout(function(){ fill.style.transition='width '+secs+'s linear'; fill.style.width='0%'; },50);
+  txt.textContent=secs+' 秒后自动确认...';
+  var r=secs;
+  countdownJob=setInterval(function(){
+    r--;
+    txt.textContent=r>0?r+' 秒后自动确认...':'正在记录...';
+    if(r<=0){ clearInterval(countdownJob); countdownJob=null; wrap.style.display='none'; confirmEntry(); }
+  },1000);
+}
+function cancelCountdown() {
+  if(countdownJob){ clearInterval(countdownJob); countdownJob=null; }
+  document.getElementById('countdownWrap').style.display='none';
+}
+
+function confirmEntry() {
+  if (!currentData) return;
+  cancelCountdown();
+  var now = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+  var record = {
+    pull: currentData.pull || '—',
+    brand: currentData.brand || '—',
+    shoe_type: currentData.shoe_type || '—',
+    size: currentData.size || '—',
+    price: currentData.price || '—',
+    platform: platform,
+    time: now,
+    session: SESSION_ID
+  };
+  saveRecord(record);
+  haptic('success'); flashSuccess(); clearFields(); setStep(1);
+  document.getElementById('priceWarn').classList.remove('show');
+  showUndoBar(record);
+}
+
+function correctLast(field, value) {
+  if (!records.length) return;
+  var fm = {pull:'pull', brand:'brand', type:'shoe_type', shoe_type:'shoe_type', size:'size', price:'price'};
+  var mapped = fm[field ? field.toLowerCase() : ''] || field;
+  var idx = records.length-1;
+  if (mapped in records[idx]) {
+    records[idx][mapped] = value;
+    var rec = records[idx];
+    if (rec.id) {
+      var patch = { id: rec.id };
+      patch[mapped === 'shoe_type' ? 'shoe_type' : mapped] = value;
+      apiWithRetry('/update-record', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(patch)
+      }, 2).catch(function(){ enqueue('/update-record', patch); });
+    }
+    persistLocal();
+    renderRecords();
+    haptic('success');
+    showToast('已修正：' + field + ' → ' + value);
+  }
+}
+
+function skipEntry() {
+  cancelCountdown(); clearFields(); setStep(1);
+  document.getElementById('transcriptBox').textContent = '等待录音...';
+  document.getElementById('transcriptBox').classList.add('placeholder');
+  document.getElementById('priceWarn').classList.remove('show');
+  document.getElementById('brandPicker').classList.remove('show');
+}
+
+function clearFields() {
+  currentData = null;
+  ['f-pull','f-brand','f-type','f-size','f-price'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.textContent = '—'; el.className = 'field-value empty';
+  });
+  document.getElementById('confidenceBadge').className = 'confidence';
+  document.getElementById('confirmBtn').classList.remove('ready');
+  document.getElementById('brandPicker').classList.remove('show');
+}
+
+// ============================================================
+// Save / undo / edit / delete
+// ============================================================
+function saveRecord(record) {
+  records.push(record);
+  renderRecords(); updateStats();
+  persistLocal();
+  apiWithRetry('/record', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(record)
+  }, 3).then(function(res){
+    if (res.ok) {
+      res.json().then(function(j){
+        if (j && j.record && j.record.id) {
+          // attach the server id to the local record (last one)
+          var lastIdx = records.length - 1;
+          // but a new record may have been appended in the meantime; find by content
+          for (var i = records.length - 1; i >= 0; i--) {
+            if (!records[i].id && records[i].time === record.time && records[i].pull === record.pull && records[i].price === record.price) {
+              records[i].id = j.record.id;
+              records[i].brand_normalized = j.record.brand_normalized;
+              break;
+            }
+          }
+          persistLocal();
+          renderRecords();
+        }
+      });
+    } else {
+      enqueue('/record', record);
+      showToast('⚠ 服务端异常，已本地保存，恢复后自动同步');
+    }
+  }).catch(function() {
+    enqueue('/record', record);
+    showToast('⚠ 网络异常，已本地保存，恢复后自动同步');
+  });
+}
+
+function persistLocal() {
+  localStorage.setItem('local_records_'+SESSION_ID, JSON.stringify(records));
+}
+
+function loadRecords() {
+  // load local first for instant UI
+  var local = localStorage.getItem('local_records_'+SESSION_ID);
+  if (local) {
+    try { records = JSON.parse(local); renderRecords(); updateStats(); } catch(e) { records = []; }
+  } else {
+    records = [];
+    renderRecords(); updateStats();
+  }
+  // then refresh from server
+  api('/records?session=' + encodeURIComponent(SESSION_ID))
+    .then(function(res){
+      if (res.ok) {
+        document.getElementById('infoConn').textContent = '✅ 已连接';
+        document.getElementById('infoConn').style.color = 'var(--green-dark)';
+        return res.json();
+      } else {
+        document.getElementById('infoConn').textContent = '⚠ 服务器异常 (' + res.status + ')';
+        return null;
+      }
+    })
+    .then(function(j){
+      if (!j) return;
+      var serverRecs = (j.records || []).map(function(r){
+        return {
+          id: r.id,
+          pull: r.pull_number || '—',
+          brand: r.brand || '—',
+          brand_normalized: r.brand_normalized,
+          shoe_type: r.shoe_type || '—',
+          size: r.size || '—',
+          price: r.price !== null && r.price !== undefined ? '$' + r.price : '—',
+          platform: r.platform || platform,
+          time: r.sale_time || '',
+          session: SESSION_ID
+        };
+      });
+      // merge: server is source of truth for IDs; preserve any local-only records
+      var localOnly = records.filter(function(r){ return !r.id; });
+      records = serverRecs.concat(localOnly);
+      renderRecords(); updateStats(); persistLocal();
+    })
+    .catch(function(){
+      document.getElementById('infoConn').textContent = '❌ 未连接';
+      document.getElementById('infoConn').style.color = 'var(--red)';
+    });
+  document.getElementById('infoCount').textContent = records.length + ' 条';
+}
+
+function renderRecords() {
+  var el = document.getElementById('recordsList');
+  document.getElementById('infoCount').textContent = records.length + ' 条';
+  if (!records.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:20px">暂无记录</div>';
+    return;
+  }
+  var arr = records.slice().reverse();
+  el.innerHTML = arr.map(function(r, ri){
+    var idx = records.length - 1 - ri;
+    var brand = r.brand_normalized || r.brand || '—';
+    return '<div class="record-item" onclick="openEdit(' + idx + ')">' +
+      '<span class="record-pull">' + r.pull + '</span>' +
+      '<div class="record-info">' +
+        '<div class="record-main">' + brand + ' ' + (r.shoe_type||'—') + '</div>' +
+        '<div class="record-sub">' + (r.size||'—') + ' · ' + r.platform + '</div>' +
+      '</div>' +
+      '<span class="record-price">' + (r.price||'—') + '</span>' +
+      '<span class="record-time">' + r.time + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = records.length;
+  var total = records.reduce(function(s, r){
+    return s + (parseFloat(String(r.price||'').replace(/[$,]/g,'')) || 0);
+  }, 0);
+  document.getElementById('statRevenue').textContent = '$' + Math.round(total);
+  document.getElementById('statAvg').textContent = records.length ? '$' + Math.round(total/records.length) : '$0';
+}
+
+// ============================================================
+// Undo bar (recent saved)
+// ============================================================
+function showUndoBar(record) {
+  undoStack.push({ idx: records.length - 1, record: record });
+  if (undoStack.length > 5) undoStack.shift();
+  var bar = document.getElementById('undoBar');
+  document.getElementById('undoText').textContent = '已记录 ' + (record.pull || '#?');
+  bar.classList.add('show');
+  clearTimeout(window._undoHide);
+  window._undoHide = setTimeout(function(){ bar.classList.remove('show'); }, 5000);
+}
+function undoLast() {
+  if (!undoStack.length) return;
+  var item = undoStack.pop();
+  var rec = records[item.idx];
+  if (!rec) { document.getElementById('undoBar').classList.remove('show'); return; }
+  records.splice(item.idx, 1);
+  persistLocal(); renderRecords(); updateStats();
+  if (rec.id) {
+    apiWithRetry('/delete-record', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: rec.id })
+    }, 2).catch(function(){ enqueue('/delete-record', { id: rec.id }); });
+  }
+  document.getElementById('undoBar').classList.remove('show');
+  showToast('已撤销');
+}
+
+// ============================================================
+// Edit modal (also serves as manual entry)
+// ============================================================
+function openEdit(idx) {
+  var r = records[idx];
+  if (!r) return;
+  editingId = idx;
+  document.getElementById('modalTitle').textContent = '修改记录';
+  document.getElementById('m-pull').value = r.pull && r.pull !== '—' ? r.pull : '';
+  document.getElementById('m-brand').value = r.brand_normalized || r.brand || '';
+  document.getElementById('m-type').value = r.shoe_type && r.shoe_type !== '—' ? r.shoe_type : '';
+  document.getElementById('m-size').value = r.size && r.size !== '—' ? r.size : '';
+  document.getElementById('m-price').value = r.price && r.price !== '—' ? r.price : '';
+  document.getElementById('m-delete-btn').style.display = 'block';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function openManual() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '手动录入';
+  if (currentData) {
+    document.getElementById('m-pull').value = currentData.pull || '';
+    document.getElementById('m-brand').value = currentData.brand || '';
+    document.getElementById('m-type').value = currentData.shoe_type || '';
+    document.getElementById('m-size').value = currentData.size || '';
+    document.getElementById('m-price').value = currentData.price || '';
+  } else {
+    ['m-pull','m-brand','m-type','m-size','m-price'].forEach(function(id){
+      document.getElementById(id).value = '';
+    });
+  }
+  document.getElementById('m-delete-btn').style.display = 'none';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('open');
+    editingId = null;
+  }
+}
+function saveModal() {
+  var fields = {
+    pull: document.getElementById('m-pull').value.trim(),
+    brand: document.getElementById('m-brand').value.trim(),
+    shoe_type: document.getElementById('m-type').value.trim(),
+    size: document.getElementById('m-size').value.trim(),
+    price: document.getElementById('m-price').value.trim(),
+  };
+  if (editingId !== null && records[editingId]) {
+    var rec = records[editingId];
+    rec.pull = fields.pull || '—';
+    rec.brand = fields.brand || '—';
+    rec.brand_normalized = null;  // will be re-normalized server-side
+    rec.shoe_type = fields.shoe_type || '—';
+    rec.size = fields.size || '—';
+    rec.price = fields.price || '—';
+    persistLocal(); renderRecords(); updateStats();
+    if (rec.id) {
+      apiWithRetry('/update-record', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: rec.id, pull: fields.pull, brand: fields.brand,
+                                shoe_type: fields.shoe_type, size: fields.size, price: fields.price })
+      }, 2).catch(function(){
+        enqueue('/update-record', { id: rec.id, pull: fields.pull, brand: fields.brand,
+                                     shoe_type: fields.shoe_type, size: fields.size, price: fields.price });
+      });
+    }
+    showToast('✓ 已修改');
+  } else {
+    var now = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+    var record = {
+      pull: fields.pull || '—', brand: fields.brand || '—',
+      shoe_type: fields.shoe_type || '—', size: fields.size || '—',
+      price: fields.price || '—',
+      platform: platform, time: now, session: SESSION_ID
+    };
+    saveRecord(record);
+    haptic('success'); clearFields();
+    showToast('✓ 已手动记录');
+  }
+  closeModal();
+}
+function deleteCurrent() {
+  if (editingId === null || !records[editingId]) return;
+  if (!confirm('确认删除这条记录？')) return;
+  var rec = records[editingId];
+  records.splice(editingId, 1);
+  persistLocal(); renderRecords(); updateStats();
+  if (rec.id) {
+    apiWithRetry('/delete-record', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: rec.id })
+    }, 2).catch(function(){ enqueue('/delete-record', { id: rec.id }); });
+  }
+  closeModal();
+  showToast('已删除');
+}
+
+// ============================================================
+// Export
+// ============================================================
+function exportCSV() {
+  if (!records.length) { showToast('暂无记录'); return; }
+  var rows = [['Pull #','品牌','鞋型','尺码','成交价','平台','时间']];
+  records.forEach(function(r){
+    rows.push([
+      r.pull, r.brand_normalized || r.brand,
+      r.shoe_type, r.size, r.price, r.platform, r.time
+    ]);
+  });
+  var csv = '\ufeff' + rows.map(function(r){ return r.join(','); }).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = '直播记录_' + SESSION_ID + '.csv';
+  a.click();
+  showToast('已导出 CSV');
+}
+
+function setStatus(t) { document.getElementById('topStatus').textContent = t; }
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+// Keyboard shortcut: Cmd/Ctrl+Z to undo
+document.addEventListener('keydown', function(e){
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undoLast(); }
+});
+// Login via Enter
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && document.getElementById('loginOverlay').classList.contains('show')) {
+    tryLogin();
+  }
+});
+</script>
+</body>
+</html>
