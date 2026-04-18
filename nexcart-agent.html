@@ -588,10 +588,10 @@
   <div class="lock-logo">📊</div>
   <div class="lock-title">NEXCART-OPS</div>
   <div class="lock-subtitle">业务分析智能体</div>
-  <div class="lock-version">v5.0 · 精准查询 · 图片识别 · 全网比价</div>
+  <div class="lock-version">v5.1 · 鉴权 · 对话记忆 · 图片压缩</div>
   <div class="lock-input-wrap">
-    <input type="password" id="pwdInput" placeholder="请输入访问密码" onkeydown="if(event.key==='Enter')unlock()">
-    <button onclick="unlock()">进入</button>
+    <input type="password" id="pwdInput" placeholder="请输入访问密钥" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlock()">
+    <button onclick="unlock()" id="unlockBtn">进入</button>
   </div>
   <div class="lock-error" id="lockError"></div>
 </div>
@@ -661,6 +661,8 @@
     <button class="quick-btn" onclick="ask('🔔 异常预警')">🔔 异常预警</button>
     <button class="quick-btn" onclick="ask('💰 API成本')">💰 API成本</button>
     <button class="quick-btn" onclick="ask('👥 买家分析')">👥 买家分析</button>
+    <button class="quick-btn" onclick="clearChatHistory()" style="margin-left:auto">🗑️ 清空</button>
+    <button class="quick-btn" onclick="logout()">🔒 退出</button>
   </div>
 
   <!-- 内容容器 -->
@@ -834,41 +836,144 @@
 <script>
 // ============ 配置 ============
 const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
-const CORRECT_HASH = 'nexcart2026';
-const chatHistory = [];
+const SESSION_ID = (function(){
+  let s = localStorage.getItem('nexcart_session_id');
+  if (!s) { s = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); localStorage.setItem('nexcart_session_id', s); }
+  return s;
+})();
+let apiSecret = sessionStorage.getItem('nexcart_api_secret') || '';
+let chatHistory = [];
 let isLoading = false;
 let pendingImage = null;
 let currentTab = 'chat';
 let tabCache = {};
+let tabCacheTs = {}; // 每个 tab 的缓存时间戳
+const TAB_CACHE_TTL = 5 * 60 * 1000; // 5 分钟
 
-// ============ 密码验证 ============
-function unlock() {
-  const pwd = document.getElementById('pwdInput').value.trim();
-  if (pwd === CORRECT_HASH) {
-    document.getElementById('lockScreen').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
-    loadStats();
-    setTimeout(checkUnreadNotifications, 1500);
-  } else {
-    document.getElementById('lockError').textContent = '密码错误，请重试';
-    document.getElementById('pwdInput').value = '';
-    setTimeout(() => document.getElementById('lockError').textContent = '', 2000);
-  }
+// ============ 带鉴权的 fetch 封装 ============
+// 所有访问 Worker 的请求都必须走这里，自动注入 Bearer token
+function apiFetch(path, options) {
+  options = options || {};
+  const url = path.startsWith('http') ? path : WORKER_URL + path;
+  const headers = Object.assign({}, options.headers || {});
+  if (apiSecret) headers['Authorization'] = 'Bearer ' + apiSecret;
+  return fetch(url, Object.assign({}, options, { headers })).then(function(res){
+    if (res.status === 401) {
+      // token 失效，强制回到锁屏
+      sessionStorage.removeItem('nexcart_api_secret');
+      apiSecret = '';
+      document.getElementById('lockScreen').classList.remove('hidden');
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('lockError').textContent = '会话失效，请重新登录';
+    }
+    return res;
+  });
 }
 
+// ============ 对话持久化 ============
+function loadChatHistory() {
+  try {
+    const s = localStorage.getItem('nexcart_chat_history');
+    if (s) {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) chatHistory = arr.slice(-50); // 最多保留 50 条
+    }
+  } catch(e) { chatHistory = []; }
+}
+function saveChatHistory() {
+  try { localStorage.setItem('nexcart_chat_history', JSON.stringify(chatHistory.slice(-50))); } catch(e) {}
+}
+function clearChatHistory() {
+  if (!confirm('清空当前对话？此操作不可撤销。')) return;
+  chatHistory = [];
+  saveChatHistory();
+  document.getElementById('chatArea').innerHTML = '';
+  showErrorBanner('对话已清空');
+}
+
+// ============ 鉴权验证（以 /stats 作为试探请求） ============
+async function unlock() {
+  const pwd = document.getElementById('pwdInput').value.trim();
+  if (!pwd) {
+    document.getElementById('lockError').textContent = '请输入访问密钥';
+    return;
+  }
+  const btn = document.getElementById('unlockBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '验证中...'; }
+  // 临时设置 apiSecret 发起一次验证请求
+  apiSecret = pwd;
+  try {
+    const res = await fetch(WORKER_URL + '/stats', {
+      headers: { 'Authorization': 'Bearer ' + pwd }
+    });
+    if (res.status === 401) {
+      apiSecret = '';
+      document.getElementById('lockError').textContent = '密钥错误';
+      document.getElementById('pwdInput').value = '';
+    } else if (!res.ok) {
+      apiSecret = '';
+      document.getElementById('lockError').textContent = '服务器错误 ' + res.status;
+    } else {
+      // 验证通过
+      sessionStorage.setItem('nexcart_api_secret', pwd);
+      document.getElementById('lockScreen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      const data = await res.json();
+      renderStatsData(data);
+      setTimeout(checkUnreadNotifications, 1500);
+    }
+  } catch (e) {
+    apiSecret = '';
+    document.getElementById('lockError').textContent = '网络错误：' + e.message;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '进入'; }
+  setTimeout(() => document.getElementById('lockError').textContent = '', 3000);
+}
+
+function logout() {
+  sessionStorage.removeItem('nexcart_api_secret');
+  apiSecret = '';
+  document.getElementById('lockScreen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('pwdInput').value = '';
+}
+
+// 页面打开时如果 sessionStorage 已有 token 就尝试自动登录
+window.addEventListener('DOMContentLoaded', function(){
+  loadChatHistory();
+  // 把历史对话渲染回聊天区域
+  try {
+    chatHistory.forEach(function(m){
+      if (m.role === 'user') addMessage('user', typeof m.content === 'string' ? m.content : '[历史消息]');
+      else if (m.role === 'assistant') addMessage('ai', typeof m.content === 'string' ? m.content : '[历史消息]');
+    });
+  } catch(e) {}
+  if (apiSecret) {
+    // 静默自动登录
+    document.getElementById('pwdInput').value = apiSecret;
+    unlock();
+  }
+});
+
 // ============ 加载统计数据 ============
+function renderStatsData(data) {
+  if (!data || data.error) {
+    document.getElementById('showCount').textContent = '连接失败';
+    document.getElementById('statusDot').classList.add('offline');
+    return;
+  }
+  document.getElementById('statShows').textContent = data.totalShows;
+  document.getElementById('statRevenue').textContent = '$' + Number(data.totalEarnings).toLocaleString();
+  document.getElementById('statProfit').textContent = '$' + Number(data.totalProfit).toLocaleString();
+  document.getElementById('statMargin').textContent = data.avgMargin + '%';
+  document.getElementById('showCount').textContent = data.totalShows + '场数据 · 实时';
+  document.getElementById('statusDot').classList.remove('offline');
+}
 async function loadStats() {
   try {
-    const res = await fetch(WORKER_URL + '/stats');
+    const res = await apiFetch('/stats');
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    document.getElementById('statShows').textContent = data.totalShows;
-    document.getElementById('statRevenue').textContent = '$' + Number(data.totalEarnings).toLocaleString();
-    document.getElementById('statProfit').textContent = '$' + Number(data.totalProfit).toLocaleString();
-    document.getElementById('statMargin').textContent = data.avgMargin + '%';
-    document.getElementById('showCount').textContent = data.totalShows + '场数据 · 实时';
-    document.getElementById('statusDot').classList.remove('offline');
+    renderStatsData(data);
   } catch (e) {
     document.getElementById('showCount').textContent = '连接失败';
     document.getElementById('statusDot').classList.add('offline');
@@ -904,10 +1009,21 @@ function switchTab(tabName) {
 
   currentTab = tabName;
 
-  // 加载标签页数据（如果未缓存）
-  if (!tabCache[tabName]) {
+  // 加载标签页数据（未缓存或缓存过期才重新拉取）
+  const now = Date.now();
+  const stale = !tabCacheTs[tabName] || (now - tabCacheTs[tabName]) > TAB_CACHE_TTL;
+  if (!tabCache[tabName] || stale) {
     loadTabData(tabName);
+  } else {
+    renderTabContent(tabName, tabCache[tabName]);
   }
+}
+
+// 兼容旧代码对 loadTab() 的调用
+function loadTab(tabName) {
+  delete tabCache[tabName];
+  delete tabCacheTs[tabName];
+  loadTabData(tabName);
 }
 
 // ============ 标签页数据加载 ============
@@ -926,9 +1042,10 @@ async function loadTabData(tabName) {
   if (!endpoints[tabName]) return;
 
   try {
-    const res = await fetch(WORKER_URL + endpoints[tabName]);
+    const res = await apiFetch(endpoints[tabName]);
     const data = await res.json();
     tabCache[tabName] = data;
+    tabCacheTs[tabName] = Date.now();
     renderTabContent(tabName, data);
   } catch (e) {
     console.error('Tab load error:', e);
@@ -1192,27 +1309,56 @@ function renderRecommend(data) {
   section.innerHTML = `<div class="recommend-card" style="line-height:1.7;">${formatMarkdown(recommendation)}</div>`;
 }
 
-// ============ 图片处理 ============
+// ============ 图片处理（含压缩）============
+// 最长边 1024px，JPEG 85% 质量，base64 体积比原图通常小 70%+
+function compressImage(dataUrl, maxSize) {
+  maxSize = maxSize || 1024;
+  return new Promise(function(resolve) {
+    const img = new Image();
+    img.onload = function() {
+      let w = img.width, h = img.height;
+      if (w <= maxSize && h <= maxSize) {
+        resolve({ dataUrl, width: w, height: h, compressed: false });
+        return;
+      }
+      const ratio = Math.min(maxSize / w, maxSize / h);
+      w = Math.round(w * ratio); h = Math.round(h * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const out = canvas.toDataURL('image/jpeg', 0.85);
+      resolve({ dataUrl: out, width: w, height: h, compressed: true });
+    };
+    img.onerror = function(){ resolve({ dataUrl, compressed: false }); };
+    img.src = dataUrl;
+  });
+}
+
 function handleImageSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (file.size > 10 * 1024 * 1024) {
-    showErrorBanner('图片太大，请选择 10MB 以下的图片');
+  if (file.size > 20 * 1024 * 1024) {
+    showErrorBanner('图片太大（>20MB），请选择更小的图片');
     event.target.value = '';
     return;
   }
 
   const reader = new FileReader();
-  reader.onload = function(e) {
-    const dataUrl = e.target.result;
-    const base64 = dataUrl.split(',')[1];
-    const mediaType = file.type || 'image/jpeg';
+  reader.onload = async function(e) {
+    const originalDataUrl = e.target.result;
+    const compressed = await compressImage(originalDataUrl, 1024);
+    const finalDataUrl = compressed.dataUrl;
+    const base64 = finalDataUrl.split(',')[1];
+    // 压缩后统一 JPEG；若未压缩则沿用原类型
+    const mediaType = compressed.compressed ? 'image/jpeg' : (file.type || 'image/jpeg');
 
-    pendingImage = { base64, mediaType, fileName: file.name, dataUrl };
+    pendingImage = { base64, mediaType, fileName: file.name, dataUrl: finalDataUrl };
 
-    document.getElementById('previewThumb').src = dataUrl;
-    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('previewThumb').src = finalDataUrl;
+    document.getElementById('previewName').textContent = file.name +
+      (compressed.compressed ? ' (已压缩 ' + compressed.width + '×' + compressed.height + ')' : '');
     document.getElementById('imagePreview').classList.add('active');
     document.getElementById('imgBtn').classList.add('has-image');
 
@@ -1257,25 +1403,27 @@ async function sendMessage() {
     let result;
 
     if (hasImage) {
-      const res = await fetch(WORKER_URL, {
+      const res = await apiFetch('', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: { base64: pendingImage.base64, mediaType: pendingImage.mediaType },
           userMessage: text || '请识别这个商品的品牌、品类，结合历史数据和全网比价给出采购价和售价建议。',
+          session_id: SESSION_ID,
         }),
       });
       result = await res.json();
       chatHistory.push({ role: 'user', content: text || '[上传了商品图片进行分析]' });
     } else {
       chatHistory.push({ role: 'user', content: text });
-      const res = await fetch(WORKER_URL, {
+      const res = await apiFetch('', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          // 不再硬编码模型，由 Worker 的 selectModel 智能判断
           max_tokens: 2000,
           messages: chatHistory.slice(-10),
+          session_id: SESSION_ID,
         }),
       });
       result = await res.json();
@@ -1300,6 +1448,7 @@ async function sendMessage() {
     const toolsUsed = result._tools_used || [];
     addMessage('ai', reply, null, hasSearch, toolsUsed);
     chatHistory.push({ role: 'assistant', content: reply });
+    saveChatHistory();
 
   } catch (e) {
     removeTyping(typingId);
@@ -1456,7 +1605,7 @@ function autoResize(el) {
 // ============ 通知系统 v5 ============
 async function checkUnreadNotifications() {
   try {
-    const res = await fetch(WORKER_URL + '/notifications?unread=true');
+    const res = await apiFetch('/notifications?unread=true');
     const data = await res.json();
     const items = data.notifications || data || [];
     const count = items.length;
@@ -1524,7 +1673,7 @@ function updateBadge(items) {
 
 async function openNotification(id) {
   try {
-    await fetch(WORKER_URL + '/notifications/read', {
+    await apiFetch('/notifications/read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
@@ -1535,7 +1684,7 @@ async function openNotification(id) {
 
 async function markAllRead() {
   try {
-    await fetch(WORKER_URL + '/notifications/read', {
+    await apiFetch('/notifications/read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ all: true })
@@ -1605,7 +1754,7 @@ async function saveProduct() {
   };
   if (!data.name) { alert('请输入产品名称'); return; }
   try {
-    await fetch(WORKER_URL + '/products', {
+    await apiFetch('/products', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
@@ -1635,7 +1784,7 @@ async function saveShowItem() {
   };
   if (!data.item_name) { alert('请输入商品名称'); return; }
   try {
-    await fetch(WORKER_URL + '/show-items', {
+    await apiFetch('/show-items', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
@@ -1716,7 +1865,7 @@ async function saveInventory() {
   };
   if (!data.product_name) { alert('请输入产品名称'); return; }
   try {
-    await fetch(WORKER_URL + '/inventory', {
+    await apiFetch('/inventory', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
@@ -1747,7 +1896,7 @@ async function doImport() {
   btn.textContent = '导入中...';
 
   try {
-    const res = await fetch(WORKER_URL + '/import', {
+    const res = await apiFetch('/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csv_data: csvData, platform })
