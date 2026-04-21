@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="直播记录">
 <meta name="theme-color" content="#1D9E75">
-<meta name="version" content="3.0.1">
+<meta name="version" content="3.1.0">
 <title>直播成交记录 · Nexcart Ops</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -46,6 +46,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
                 border: 1.5px solid var(--border); background: var(--card);
                 color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; }
 .platform-btn.active { border-color: var(--green); color: var(--green-dark); background: var(--green-light); }
+.show-bar { display: flex; justify-content: space-between; align-items: center;
+            background: var(--card); border-radius: 12px; padding: 10px 14px;
+            margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.show-bar-label { font-size: 13px; color: var(--text); }
+.show-bar-label #showNumBadge { color: var(--green-dark); font-weight: 700; }
+.show-bar-label #showCountBadge { color: var(--muted); font-size: 12px; }
+.show-bar-btn { background: var(--green-light); color: var(--green-dark); border: 1.5px solid var(--green);
+                border-radius: 14px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.show-bar-btn:active { background: var(--green); color: white; }
 .step-hint { display: flex; gap: 5px; margin-bottom: 10px; }
 .step { flex: 1; background: var(--card); border-radius: 10px; padding: 8px 4px;
         text-align: center; font-size: 10px; color: var(--muted); line-height: 1.5;
@@ -219,6 +228,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     <button class="platform-btn"        id="btn-tiktok"  onclick="setPlatform('TikTok Live')">TikTok Live</button>
   </div>
 
+  <div class="show-bar">
+    <div class="show-bar-label">本场 <span id="showNumBadge">#1</span> · <span id="showCountBadge">0 条</span></div>
+    <button class="show-bar-btn" onclick="startNewShow()">🆕 新一场</button>
+  </div>
+
   <div class="step-hint">
     <div class="step active" id="step1"><span class="step-icon">🟢</span>点绿色</div>
     <div class="step"        id="step2"><span class="step-icon">🎙</span>说信息</div>
@@ -357,7 +371,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 // ============================================================
 const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
 const PASSWORD_STORAGE_KEY = 'nexcart_pwd';
-const APP_VERSION = '3.0.1';
+const APP_VERSION = '3.1.0';
 
 // ============================================================
 // Login gate
@@ -454,16 +468,30 @@ var undoStack = [];      // list of last 5 saved records (in-memory)
 var editingId = null;    // when modal is editing an existing row
 
 // ============================================================
-// Session ID = YYYYMMDD_Platform — date is in Pacific Time
-// (so a late-night PT show doesn't roll over to the next day)
+// Session ID = YYYYMMDD_Platform_N
+//   YYYYMMDD = Pacific Time date (so late-night shows don't roll over)
+//   N = show number that day for this platform (1, 2, 3...)
+// User clicks "新一场" button to increment N when starting next show same day.
 // ============================================================
-function computeSessionId(plat) {
-  // 'en-CA' formats as YYYY-MM-DD; strip the dashes
-  var ptDate = new Intl.DateTimeFormat('en-CA', {
+function ptDateStr() {
+  return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Los_Angeles',
     year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(new Date()).replace(/-/g, '');
-  return ptDate + '_' + plat.replace(/\s+/g, '');
+}
+function sessionNoStorageKey(plat) {
+  return 'sessionNo_' + ptDateStr() + '_' + plat.replace(/\s+/g, '');
+}
+function getSessionNo(plat) {
+  var n = parseInt(localStorage.getItem(sessionNoStorageKey(plat)) || '1', 10);
+  if (!Number.isFinite(n) || n < 1) n = 1;
+  return n;
+}
+function setSessionNo(plat, n) {
+  localStorage.setItem(sessionNoStorageKey(plat), String(n));
+}
+function computeSessionId(plat) {
+  return ptDateStr() + '_' + plat.replace(/\s+/g, '') + '_' + getSessionNo(plat);
 }
 
 // ============================================================
@@ -535,6 +563,7 @@ function bootApp() {
   setPlatform(platform, false);
   SESSION_ID = computeSessionId(platform);
   document.getElementById('infoSession').textContent = SESSION_ID;
+  updateShowBar();
   loadRecords();
   loadBrandsAndPrices();
   updateQueueBadge();
@@ -606,8 +635,36 @@ function setPlatform(p, save) {
     SESSION_ID = computeSessionId(platform);
     var infoSession = document.getElementById('infoSession');
     if (infoSession) infoSession.textContent = SESSION_ID;
+    updateShowBar();
     loadRecords();
   }
+}
+
+function updateShowBar() {
+  var n = getSessionNo(platform);
+  var badge = document.getElementById('showNumBadge');
+  var cnt = document.getElementById('showCountBadge');
+  if (badge) badge.textContent = '#' + n;
+  if (cnt) cnt.textContent = (records ? records.length : 0) + ' 条';
+}
+
+function startNewShow() {
+  var prevN = getSessionNo(platform);
+  var prevCount = records ? records.length : 0;
+  var msg = '结束当前 #' + prevN + ' 场（已记录 ' + prevCount +
+            ' 条，已存云端，不会丢），开新一场 #' + (prevN + 1) + '？';
+  if (!confirm(msg)) return;
+  setSessionNo(platform, prevN + 1);
+  SESSION_ID = computeSessionId(platform);
+  records = [];
+  undoStack = [];
+  persistLocal();
+  updateShowBar();
+  renderRecords();
+  updateStats();
+  document.getElementById('infoSession').textContent = SESSION_ID;
+  showToast('✓ 已开新一场 #' + (prevN + 1));
+  loadRecords();  // load fresh (likely empty)
 }
 function onAutoConfirmChange() {
   autoConfirm = document.getElementById('autoConfirmToggle').checked;
@@ -977,6 +1034,7 @@ function loadRecords() {
 function renderRecords() {
   var el = document.getElementById('recordsList');
   document.getElementById('infoCount').textContent = records.length + ' 条';
+  updateShowBar();
   if (!records.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:20px">暂无记录</div>';
     return;
