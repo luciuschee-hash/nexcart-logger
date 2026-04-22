@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="直播记录">
 <meta name="theme-color" content="#1D9E75">
-<meta name="version" content="3.1.0">
+<meta name="version" content="3.1.1">
 <title>直播成交记录 · Nexcart Ops</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -371,7 +371,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 // ============================================================
 const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
 const PASSWORD_STORAGE_KEY = 'nexcart_pwd';
-const APP_VERSION = '3.1.0';
+const APP_VERSION = '3.1.1';
 
 // ============================================================
 // Login gate
@@ -764,11 +764,18 @@ function processAudio() {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ text: text })
       }).then(function(res2){ return res2.json(); }).then(function(j2) {
-        if (j2 && j2.data) onDetected(j2.data);
-        else setStep(1);
+        if (j2 && j2.data) {
+          onDetected(j2.data);
+        } else {
+          // 提取返回 null（文字太短或 LLM 没解析出 JSON）— 明确提示，不要悄悄吞
+          haptic('error');
+          showToast('⚠️ 没识别到信息，点"手动"补一条');
+          setStep(1);
+        }
         finishProcessing();
       }).catch(function(){
-        showToast('提取失败，但文字已识别——可点"手动"录入');
+        haptic('error');
+        showToast('⚠️ 提取失败 — 文字已识别但没解析出来，点"手动"补');
         finishProcessing();
       });
     })
@@ -787,7 +794,17 @@ function onDetected(data) {
     correctLast(data.correction_field, data.correction_value);
     return;
   }
-  if (!data.is_sold) { setStep(1); return; }
+  // v3.1.1 fix: 主播按按钮 = 一次成交，绝不静默丢弃。
+  // 只要有价格、Pull 号、品牌或鞋型任意一个有效字段，就当成成交处理。
+  // is_sold 字段保留作为参考，但不再用作过滤条件。
+  var hasAnyField = !!(data.price || data.pull || data.brand || data.shoe_type || data.size);
+  if (!hasAnyField) {
+    // 真的什么都没识别出来 — 给主播明确提示，不要悄悄吞掉
+    haptic('error');
+    showToast('⚠️ 没识别到内容，点"手动"补一条');
+    setStep(1);
+    return;
+  }
   cancelCountdown(); currentData = data; setStep(4);
   setField('f-pull', data.pull);
   setField('f-brand', data.brand);
