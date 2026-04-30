@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#063b4f">
+  <title>Nexcart Ops SaaS</title>
+  <style>
+    :root {
+      --ink: #10212b;
+      --muted: #60717c;
+      --line: #d8e4e8;
+      --soft: #f4f8fa;
+      --panel: #ffffff;
+      --navy: #063b4f;
+      --sea: #087c93;
+      --sea-soft: #e5f4f6;
+      --green: #0f9f6e;
+      --teal: #087c93;
+      --blue: #2563eb;
+      --gold: #f15a1a;
+      --gold-dark: #c24712;
+      --gold-soft: #fff0e8;
+      --red: #dc2626;
+      --shadow: 0 18px 44px rgba(6, 59, 79, .16);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, #eef7f9 0%, #f7fafb 42%, #f4f8fa 100%);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .lock {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background:
+        linear-gradient(90deg, rgba(6, 59, 79, .92) 0%, rgba(6, 59, 79, .76) 44%, rgba(8, 124, 147, .44) 100%),
+        radial-gradient(circle at 18% 22%, rgba(201, 154, 46, .26), transparent 28%),
+        url("https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1800&q=80") center/cover;
+    }
+
+    .lock::before {
+      content: "NEXCART OPS";
+      position: fixed;
+      left: clamp(28px, 6vw, 82px);
+      bottom: clamp(26px, 7vh, 82px);
+      color: rgba(255, 255, 255, .12);
+      font-size: clamp(46px, 10vw, 128px);
+      font-weight: 950;
+      letter-spacing: 0;
+      pointer-events: none;
+      line-height: .88;
+      max-width: 760px;
+    }
+
+    .lock-card {
+      width: min(430px, 100%);
+      background: rgba(255, 255, 255, .96);
+      border: 1px solid rgba(255, 255, 255, .76);
+      border-radius: var(--radius);
+      padding: 30px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      position: relative;
+    }
+    .lock-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      border-radius: 8px 8px 0 0;
+      background: linear-gradient(90deg, var(--sea), var(--gold));
+    }
+
+    .brand-mark {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      display: block;
+      background: white;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 22px rgba(6, 59, 79, .16);
+      overflow: hidden;
+      border: 1px solid rgba(241, 90, 26, .22);
+    }
+    .brand-mark img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: center;
+      transform: scale(3.55);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    .lock-card h1 { font-size: 28px; line-height: 1.1; margin-bottom: 10px; }
+    .lock-card p { color: var(--muted); line-height: 1.55; margin-bottom: 22px; }
+    .lock-card h1 span { color: var(--gold-dark); }
+    .eyebrow {
+      color: var(--sea);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .field label {
+      color: #334155;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      background: white;
+      outline: none;
+    }
+    .input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14, 116, 144, .13); }
+
+    .primary {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 15px;
+      color: white;
+      background: linear-gradient(135deg, var(--navy), var(--sea));
+      font-weight: 800;
+      width: 100%;
+      box-shadow: 0 10px 20px rgba(8, 124, 147, .18);
+    }
+    .primary:disabled { opacity: .6; cursor: wait; }
+
+    .error { color: var(--red); font-size: 13px; min-height: 20px; margin-top: 12px; }
+
+    .app {
+      display: none;
+      min-height: 100vh;
+      grid-template-columns: 248px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background:
+        linear-gradient(180deg, #063b4f 0%, #082f3d 100%);
+      color: white;
+      padding: 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 12px 0 34px rgba(6, 59, 79, .13);
+    }
+
+    .side-head {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 6px 4px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+    }
+    .side-head .brand-mark { margin: 0; width: 46px; height: 46px; flex: 0 0 auto; }
+    .side-head .brand-mark img { transform: scale(3.55); }
+    .side-title strong { display: block; font-size: 16px; }
+    .side-title span { color: rgba(255, 255, 255, .62); font-size: 12px; }
+
+    .nav {
+      display: grid;
+      gap: 7px;
+    }
+    .nav button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 0;
+      color: rgba(255, 255, 255, .76);
+      background: transparent;
+      padding: 11px 12px;
+      border-radius: 8px;
+      text-align: left;
+      font-weight: 700;
+    }
+    .nav button.active,
+    .nav button:hover {
+      background: rgba(255, 255, 255, .12);
+      color: white;
+      box-shadow: inset 3px 0 0 var(--gold);
+    }
+    .nav svg { width: 18px; height: 18px; flex: 0 0 auto; }
+
+    .side-foot {
+      margin-top: auto;
+      display: grid;
+      gap: 10px;
+      color: rgba(255, 255, 255, .62);
+      font-size: 12px;
+    }
+    .ghost {
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 8px;
+      background: transparent;
+      color: white;
+      padding: 10px 12px;
+      font-weight: 800;
+    }
+
+    main {
+      min-width: 0;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid rgba(216, 228, 232, .92);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(6, 59, 79, .055);
+      backdrop-filter: blur(10px);
+    }
+    .topbar h2 { font-size: 25px; letter-spacing: 0; }
+    .topbar p { color: var(--muted); margin-top: 4px; }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: #334155;
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(6, 59, 79, .06);
+    }
+    .dot { width: 9px; height: 9px; border-radius: 99px; background: var(--gold); }
+    .dot.online { background: var(--green); }
+    .dot.offline { background: var(--red); }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .metric {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      min-height: 126px;
+      box-shadow: 0 8px 22px rgba(6, 59, 79, .05);
+      position: relative;
+      overflow: hidden;
+    }
+    .metric::after {
+      content: "";
+      position: absolute;
+      right: -34px;
+      bottom: -42px;
+      width: 112px;
+      height: 112px;
+      border-radius: 999px;
+      border: 18px solid rgba(8, 124, 147, .06);
+    }
+    .metric::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(90deg, var(--sea), var(--gold));
+    }
+    .metric .label { color: var(--muted); font-size: 13px; font-weight: 700; }
+    .metric .value { margin-top: 12px; font-size: 30px; font-weight: 950; letter-spacing: 0; position: relative; z-index: 1; }
+    .metric .hint { margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .value.gold { color: var(--gold); }
+    .value.green { color: var(--green); }
+    .value.blue { color: var(--blue); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .panel {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 8px 22px rgba(6, 59, 79, .045);
+    }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .panel h3 { font-size: 16px; }
+    .small-btn {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .module-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: linear-gradient(180deg, #ffffff, #f8fbfc);
+      display: grid;
+      gap: 10px;
+      min-height: 154px;
+      transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+    .module-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(8, 124, 147, .34);
+      box-shadow: 0 14px 26px rgba(6, 59, 79, .09);
+    }
+    .module-card strong { font-size: 15px; }
+    .module-card strong::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: var(--gold);
+      margin-right: 8px;
+      vertical-align: 1px;
+    }
+    .module-card p { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .module-card button {
+      align-self: end;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--navy), var(--sea));
+      color: white;
+      padding: 9px 10px;
+      font-weight: 800;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 11px 9px;
+      border-bottom: 1px solid #edf1f5;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th { color: var(--muted); font-size: 12px; }
+
+    .quick-list {
+      display: grid;
+      gap: 9px;
+    }
+    .quick-list button {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 8px;
+      padding: 10px 11px;
+      text-align: left;
+      color: #334155;
+      font-weight: 750;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .quick-list button:hover { border-color: var(--teal); background: var(--sea-soft); transform: translateX(2px); }
+
+    .chat-box {
+      display: grid;
+      gap: 12px;
+    }
+    .chat-log {
+      min-height: 280px;
+      max-height: 48vh;
+      overflow: auto;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      padding: 4px;
+    }
+    .msg {
+      padding: 12px 13px;
+      border-radius: 8px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .msg.user { background: var(--sea-soft); justify-self: end; max-width: 78%; }
+    .msg.ai { background: #f4f7fb; justify-self: start; max-width: 88%; }
+    .chat-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      gap: 10px;
+    }
+    textarea.input { min-height: 48px; resize: vertical; }
+
+    .frame-wrap {
+      height: calc(100vh - 112px);
+      min-height: 660px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(6, 59, 79, .07);
+    }
+    iframe {
+      border: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: white;
+    }
+
+    .mobile-tabs {
+      display: none;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .mobile-tabs button {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 999px;
+      padding: 9px 12px;
+      color: #334155;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+      .mobile-tabs button.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+    @media (max-width: 1080px) {
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      main { padding: 14px; }
+      .topbar { padding: 14px; }
+      .mobile-tabs { display: flex; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .metrics { grid-template-columns: 1fr; }
+      .chat-form { grid-template-columns: 1fr; }
+      .frame-wrap { height: calc(100vh - 156px); min-height: 560px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="lock" id="lock">
+    <div class="lock-card">
+      <div class="brand-mark"><img src="assets/nexcart-logo.jpg" alt="Nexcart"></div>
+      <div class="eyebrow">Live Sales Intelligence</div>
+      <h1>Nexcart <span>Ops</span></h1>
+      <p>一个入口管理直播成交、场次复盘和 AI 经营分析。登录后系统会自动尝试连接实时数据。</p>
+      <div class="field">
+        <label for="password">访问密码</label>
+        <input id="password" class="input" type="password" autocomplete="current-password" placeholder="输入 Nexcart 密码">
+      </div>
+      <button id="loginBtn" class="primary">进入系统</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </section>
+
+  <section class="app" id="app">
+    <aside class="sidebar">
+      <div class="side-head">
+        <div class="brand-mark"><img src="assets/nexcart-logo.jpg" alt="Nexcart"></div>
+        <div class="side-title">
+          <strong>Nexcart Ops</strong>
+          <span>Sea blue · Gold signal</span>
+        </div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-foot">
+        <div id="lastSync">尚未同步</div>
+        <button class="ghost" id="logoutBtn">退出登录</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="mobile-tabs" id="mobileNav"></div>
+      <div class="topbar">
+        <div>
+          <h2 id="viewTitle">经营驾驶舱</h2>
+          <p id="viewSubtitle">实时看 GMV、毛利和最近场次，直播前后都从这里开始。</p>
+        </div>
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">连接中</span></div>
+      </div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="metrics">
+          <div class="metric"><div class="label">总场次</div><div class="value blue" id="mShows">--</div><div class="hint">Supabase 实时统计</div></div>
+          <div class="metric"><div class="label">总 GMV</div><div class="value gold" id="mRevenue">--</div><div class="hint">所有场次到账累计</div></div>
+          <div class="metric"><div class="label">总毛利</div><div class="value green" id="mProfit">--</div><div class="hint">到账减货成本</div></div>
+          <div class="metric"><div class="label">平均毛利率</div><div class="value green" id="mMargin">--</div><div class="hint">整体经营效率</div></div>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>工作台</h3>
+              <button class="small-btn" id="refreshBtn">刷新</button>
+            </div>
+            <div class="module-grid">
+              <div class="module-card">
+                <strong>直播录音成交</strong>
+                <p>主播按住录音，自动识别 Pull、品牌、鞋型、尺码和成交价。</p>
+                <button data-go="recorder">开始录音</button>
+              </div>
+              <div class="module-card">
+                <strong>场次复盘录入</strong>
+                <p>直播结束后补齐到账、成本、时长、买家和备注。</p>
+                <button data-go="entry">填写场次</button>
+              </div>
+              <div class="module-card">
+                <strong>AI 经营智能体</strong>
+                <p>直接问排品、定价、平台对比、月报和毛利趋势。</p>
+                <button data-go="agent">打开智能体</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>快捷分析</h3></div>
+            <div class="quick-list">
+              <button data-question="最近 5 场直播表现怎么样？请给我重点结论。">最近 5 场表现</button>
+              <button data-question="Whatnot 和 TikTok Live 哪个平台表现更好？">平台对比</button>
+              <button data-question="根据最近数据，下一场直播应该重点上什么货？">下一场排品建议</button>
+              <button data-question="这个月 GMV、毛利和毛利率怎么样？">本月经营复盘</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px;">
+          <div class="panel-head"><h3>最近场次</h3><span id="showsHint" style="color:var(--muted);font-size:13px;"></span></div>
+          <div style="overflow:auto;">
+            <table>
+              <thead><tr><th>日期</th><th>平台</th><th>到账</th><th>成本</th><th>毛利</th><th>毛利率</th><th>买家</th></tr></thead>
+              <tbody id="recentShows"><tr><td colspan="7">正在加载...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-ai">
+        <div class="grid">
+          <div class="panel">
+            <div class="panel-head"><h3>AI 经营助手</h3></div>
+            <div class="chat-box">
+              <div class="chat-log" id="chatLog">
+                <div class="msg ai">你可以问：今晚应该上什么货、哪个平台更适合、最近毛利为什么变化、这个月复盘怎么写。</div>
+              </div>
+              <div class="chat-form">
+                <textarea id="chatInput" class="input" placeholder="输入你的经营问题"></textarea>
+                <button id="sendBtn" class="primary">发送</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>常用问题</h3></div>
+            <div class="quick-list">
+              <button data-question="哪种鞋型成交价最高？哪个尺码最好卖？">鞋型和尺码</button>
+              <button data-question="品牌货和无品牌货，成交价差多少？">品牌效果</button>
+              <button data-question="最近一个月哪几场直播最好？原因是什么？">最佳场次</button>
+              <button data-question="给我生成一份本月运营报告。">月度报告</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-recorder">
+        <div class="frame-wrap"><iframe src="recorder.html" title="直播录音成交"></iframe></div>
+      </section>
+
+      <section class="view" id="view-entry">
+        <div class="frame-wrap"><iframe src="index.html" title="场次复盘录入"></iframe></div>
+      </section>
+
+      <section class="view" id="view-agent">
+        <div class="frame-wrap"><iframe src="nexcart-agent.html" title="完整业务智能体"></iframe></div>
+      </section>
+    </main>
+  </section>
+
+  <script>
+    const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
+    const PASS_KEY = 'nexcart_ops_password';
+    const SESSION_ID = 'saas_' + Date.now().toString(36);
+    const chatHistory = [];
+
+    const views = [
+      { id: 'dashboard', label: '经营驾驶舱', subtitle: '实时看 GMV、毛利和最近场次，直播前后都从这里开始.', icon: icon('layout-dashboard') },
+      { id: 'recorder', label: '直播录音', subtitle: '边播边记录每一单成交.', icon: icon('mic') },
+      { id: 'entry', label: '场次录入', subtitle: '直播结束后补齐财务和运营数据.', icon: icon('clipboard') },
+      { id: 'ai', label: 'AI 分析', subtitle: '用中文问你的真实经营数据.', icon: icon('sparkles') },
+      { id: 'agent', label: '完整智能体', subtitle: '保留原 v5 智能体的完整能力.', icon: icon('bot') },
+    ];
+
+    function icon(name) {
+      const paths = {
+        'layout-dashboard': '<rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect>',
+        mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path>',
+        clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M8 12h8"></path><path d="M8 16h5"></path>',
+        sparkles: '<path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z"></path><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14Z"></path><path d="M5 14l.9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14Z"></path>',
+        bot: '<rect x="4" y="8" width="16" height="12" rx="3"></rect><path d="M12 4v4"></path><path d="M9 14h.01"></path><path d="M15 14h.01"></path><path d="M10 18h4"></path>',
+      };
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths[name] + '</svg>';
+    }
+
+    function getPassword() {
+      return sessionStorage.getItem(PASS_KEY)
+        || sessionStorage.getItem('nx_pwd_v3')
+        || sessionStorage.getItem('nexcart_api_secret')
+        || sessionStorage.getItem('nexcart_pwd')
+        || localStorage.getItem(PASS_KEY)
+        || localStorage.getItem('nexcart_pwd')
+        || '';
+    }
+
+    function setPassword(pwd) {
+      sessionStorage.setItem(PASS_KEY, pwd);
+      localStorage.setItem(PASS_KEY, pwd);
+      sessionStorage.setItem('nx_pwd_v3', pwd);
+      sessionStorage.setItem('nexcart_api_secret', pwd);
+      sessionStorage.setItem('nexcart_pwd', pwd);
+      localStorage.setItem('nexcart_pwd', pwd);
+    }
+
+    function clearPasswords() {
+      [PASS_KEY, 'nx_pwd_v3', 'nexcart_api_secret', 'nexcart_pwd'].forEach(key => {
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+      });
+    }
+
+    function refreshLegacyFrames() {
+      document.querySelectorAll('iframe').forEach(frame => {
+        const current = frame.getAttribute('src');
+        frame.setAttribute('src', current);
+      });
+    }
+
+    async function api(path, options = {}) {
+      const headers = Object.assign({}, options.headers || {}, {
+        'X-Password': getPassword(),
+        'Authorization': 'Bearer ' + getPassword(),
+      });
+      const res = await fetch(path.startsWith('http') ? path : WORKER_URL + path, Object.assign({}, options, { headers }));
+      if (res.status === 401) throw new Error('密码不正确或登录已失效');
+      return res;
+    }
+
+    function fmtMoney(v) {
+      const n = Number(v || 0);
+      return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    }
+
+    function fmtPct(v) {
+      if (v === null || v === undefined || v === '') return '--';
+      const n = Number(v);
+      if (Number.isNaN(n)) return String(v);
+      return (n > 1 ? n : n * 100).toFixed(1) + '%';
+    }
+
+    function setStatus(kind, text) {
+      const dot = document.getElementById('statusDot');
+      dot.className = 'dot ' + (kind || '');
+      document.getElementById('statusText').textContent = text;
+    }
+
+    function buildNav() {
+      const nav = document.getElementById('nav');
+      const mobile = document.getElementById('mobileNav');
+      nav.innerHTML = views.map(v => `<button data-view="${v.id}">${v.icon}<span>${v.label}</span></button>`).join('');
+      mobile.innerHTML = views.map(v => `<button data-view="${v.id}">${v.label}</button>`).join('');
+      document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+    }
+
+    function showView(id) {
+      views.forEach(v => {
+        document.getElementById('view-' + v.id).classList.toggle('active', v.id === id);
+      });
+      document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
+      const view = views.find(v => v.id === id) || views[0];
+      document.getElementById('viewTitle').textContent = view.label;
+      document.getElementById('viewSubtitle').textContent = view.subtitle;
+      if (id === 'dashboard') loadDashboard();
+    }
+
+    async function login() {
+      const btn = document.getElementById('loginBtn');
+      const err = document.getElementById('loginError');
+      const pwd = document.getElementById('password').value.trim();
+      if (!pwd) {
+        err.textContent = '请输入访问密码';
+        return;
+      }
+      btn.disabled = true;
+      err.textContent = '';
+      sessionStorage.setItem(PASS_KEY, pwd);
+      try {
+        const res = await api('/shows-list?limit=1');
+        if (!res.ok) throw new Error('服务器返回 ' + res.status);
+        setPassword(pwd);
+        document.getElementById('lock').style.display = 'none';
+        document.getElementById('app').style.display = 'grid';
+        setStatus('online', '已连接');
+        refreshLegacyFrames();
+        showView('dashboard');
+      } catch (e) {
+        clearPasswords();
+        err.textContent = e.message || '无法登录';
+        setStatus('offline', '未连接');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function loadDashboard() {
+      try {
+        setStatus('', '同步中');
+        const [statsRes, showsRes] = await Promise.all([
+          api('/stats').catch(() => null),
+          api('/shows-list?limit=1000'),
+        ]);
+        const showsPayload = await showsRes.json();
+        const shows = Array.isArray(showsPayload) ? showsPayload : (showsPayload.data || showsPayload.shows || []);
+        if (statsRes && statsRes.ok) {
+          const stats = await statsRes.json();
+          renderStats(stats);
+          setStatus('online', '已连接');
+        } else {
+          renderStats(statsFromShows(shows));
+          setStatus('online', '已连接，统计由场次数据计算');
+        }
+        renderShows(shows.slice(0, 8));
+        document.getElementById('lastSync').textContent = '最近同步 ' + new Date().toLocaleTimeString();
+      } catch (e) {
+        setStatus('offline', e.message || '同步失败');
+      }
+    }
+
+    function statsFromShows(shows) {
+      const totalShows = shows.length;
+      const totalEarnings = shows.reduce((sum, s) => sum + Number(s.earnings || s.revenue || 0), 0);
+      const totalProfit = shows.reduce((sum, s) => {
+        const revenue = Number(s.earnings || s.revenue || 0);
+        const cost = Number(s.cost || 0);
+        return sum + Number(s.gross_profit ?? s.profit ?? (revenue - cost));
+      }, 0);
+      const avgMargin = totalEarnings > 0 ? (totalProfit / totalEarnings * 100).toFixed(1) : '0.0';
+      return { totalShows, totalEarnings, totalProfit, avgMargin };
+    }
+
+    function renderStats(data) {
+      document.getElementById('mShows').textContent = data.totalShows ?? data.total_shows ?? '--';
+      document.getElementById('mRevenue').textContent = fmtMoney(data.totalEarnings ?? data.total_earnings);
+      document.getElementById('mProfit').textContent = fmtMoney(data.totalProfit ?? data.total_profit);
+      document.getElementById('mMargin').textContent = (data.avgMargin ?? data.avg_margin ?? '--') + (String(data.avgMargin ?? data.avg_margin ?? '').includes('%') ? '' : '%');
+    }
+
+    function renderShows(shows) {
+      const body = document.getElementById('recentShows');
+      document.getElementById('showsHint').textContent = shows.length ? `${shows.length} 条` : '';
+      if (!shows.length) {
+        body.innerHTML = '<tr><td colspan="7">暂无场次数据</td></tr>';
+        return;
+      }
+      body.innerHTML = shows.map(s => {
+        const revenue = s.earnings ?? s.revenue ?? 0;
+        const cost = s.cost ?? 0;
+        const profit = s.gross_profit ?? s.profit ?? (revenue - cost);
+        return `<tr>
+          <td>${s.show_date || s.date || '--'}</td>
+          <td>${s.platform || '--'}</td>
+          <td>${fmtMoney(revenue)}</td>
+          <td>${fmtMoney(cost)}</td>
+          <td style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:800;">${fmtMoney(profit)}</td>
+          <td>${fmtPct(s.margin)}</td>
+          <td>${s.buyers ?? '--'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function addMessage(role, text) {
+      const log = document.getElementById('chatLog');
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      return div;
+    }
+
+    async function askAI(question) {
+      const input = document.getElementById('chatInput');
+      const text = (question || input.value).trim();
+      if (!text) return;
+      input.value = '';
+      showView('ai');
+      addMessage('user', text);
+      const pending = addMessage('ai', '正在查询你的业务数据...');
+      chatHistory.push({ role: 'user', content: text });
+      document.getElementById('sendBtn').disabled = true;
+      try {
+        const res = await api('', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            max_tokens: 1800,
+            messages: chatHistory.slice(-10),
+            session_id: SESSION_ID,
+          }),
+        });
+        const result = await res.json();
+        const reply = result.content && result.content[0] ? result.content[0].text : (result.error ? JSON.stringify(result.error) : '返回数据异常，请重试。');
+        pending.textContent = reply;
+        chatHistory.push({ role: 'assistant', content: reply });
+      } catch (e) {
+        pending.textContent = '分析失败：' + (e.message || '请稍后重试');
+      } finally {
+        document.getElementById('sendBtn').disabled = false;
+      }
+    }
+
+    function boot() {
+      buildNav();
+      document.getElementById('loginBtn').addEventListener('click', login);
+      document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        clearPasswords();
+        location.reload();
+      });
+      document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
+      document.getElementById('sendBtn').addEventListener('click', () => askAI());
+      document.getElementById('chatInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) askAI();
+      });
+      document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.go)));
+      document.querySelectorAll('[data-question]').forEach(btn => btn.addEventListener('click', () => askAI(btn.dataset.question)));
+
+      const saved = getPassword();
+      if (saved) {
+        document.getElementById('password').value = saved;
+        login();
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
