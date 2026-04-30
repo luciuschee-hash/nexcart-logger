@@ -1640,16 +1640,13 @@ async function checkUnreadNotifications() {
 }
 
 function renderNotifications(data) {
-  const section = document.getElementById('notifSection');
+  const section = document.getElementById('notifList');
   section.innerHTML = '';
   section.style.display = 'block';
 
   const items = data.notifications || data || [];
 
-  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <h3 style="color:var(--accent);margin:0;">通知中心</h3>
-    <button onclick="markAllRead()" style="background:var(--accent);color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">全部已读</button>
-  </div>`;
+  let html = '';
 
   if (items.length === 0) {
     html += '<div class="notif-empty">暂无通知</div>';
