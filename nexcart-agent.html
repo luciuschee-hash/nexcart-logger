@@ -907,7 +907,7 @@ async function unlock() {
   if (errEl) errEl.textContent = '';
   // 强清洗：剥掉所有空白 + 零宽字符 + nbsp，避免手机粘贴混入隐形字符
   const raw = document.getElementById('pwdInput').value || '';
-  const pwd = raw.replace(/[\s\u00A0\u200B-\u200F\uFEFF\u2028\u2029]/g, '');
+  const pwd = (raw + '').split('').filter(function(c){var k=c.charCodeAt(0);return !(k===32||k===9||k===10||k===13||k===0xA0||k===0xFEFF||(k>=0x200B&&k<=0x200F));}).join('');
   if (!pwd) {
     if (errEl) errEl.textContent = '请输入访问密钥';
     return;
