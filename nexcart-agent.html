@@ -1112,17 +1112,17 @@ function renderAlerts(data) {
   alerts.forEach(alert => {
     const severity = alert.severity || 'ok';
     const severityClass = severity === 'critical' ? 'critical' : severity === 'warning' ? 'warning' : '';
-    const change = parseFloat(alert.change) || 0;
+    const change = parseFloat(alert.change_pct) || 0;
     const changeClass = change > 0 ? 'up' : 'down';
 
     const card = document.createElement('div');
     card.className = `alert-card ${severityClass}`;
     card.innerHTML = `
       <div class="alert-left">
-        <div class="alert-metric">${alert.metric}</div>
-        <div class="alert-name">${alert.name}</div>
+        <div class="alert-metric">${alert.alert_type || ''}</div>
+        <div class="alert-name">${alert.metric_name || ''}</div>
         <div class="alert-values">
-          当前: ${alert.current} | 基准: ${alert.baseline}
+          当前: ${alert.current_value ?? '-'} | 基准: ${alert.baseline_value ?? '-'}
         </div>
       </div>
       <div class="alert-change ${changeClass}">
@@ -1643,14 +1643,15 @@ function renderNotifications(data) {
     html += '<div class="notif-empty">暂无通知</div>';
   } else {
     items.forEach(n => {
-      const isUnread = !n.read_at;
-      const typeIcon = n.type === 'alert' ? '🔔' : n.type === 'report' ? '📊' : '💬';
+      const isUnread = n.is_read === false;
+      const typeIcon = n.type === 'alert' ? '🔔' : (n.type && n.type.indexOf('report') >= 0) ? '📊' : '💬';
+      const body = n.summary || n.message || '';
       html += `<div class="notif-card ${isUnread ? 'unread' : ''}" onclick="openNotification('${n.id}')">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span>${typeIcon} <strong>${escapeHtml(n.title || '通知')}</strong></span>
           <span style="font-size:11px;color:var(--text-muted);">${getTimeAgo(n.created_at)}</span>
         </div>
-        <div style="margin-top:6px;font-size:13px;color:var(--text-secondary);line-height:1.5;">${escapeHtml((n.message || '').substring(0, 150))}${(n.message || '').length > 150 ? '...' : ''}</div>
+        <div style="margin-top:6px;font-size:13px;color:var(--text-secondary);line-height:1.5;white-space:pre-wrap;">${escapeHtml(body.substring(0, 150))}${body.length > 150 ? '...' : ''</div>
       </div>`;
     });
   }
@@ -1669,7 +1670,7 @@ function getTimeAgo(dateStr) {
 }
 
 function updateBadge(items) {
-  const unread = (items || []).filter(n => !n.read_at).length;
+  const unread = (items || []).filter(n => n.is_read === false).length;
   const badge = document.getElementById('notifBadge');
   if (unread > 0) {
     badge.textContent = unread > 99 ? '99+' : unread;
