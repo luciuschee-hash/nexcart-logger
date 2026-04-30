@@ -451,6 +451,169 @@
       background: white;
     }
 
+    .native-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .form-grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .form-full { grid-column: 1 / -1; }
+
+    .native-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .native-field label {
+      color: #334155;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .native-field input,
+    .native-field select,
+    .native-field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .native-field textarea {
+      min-height: 96px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .native-field input:focus,
+    .native-field select:focus,
+    .native-field textarea:focus {
+      border-color: var(--sea);
+      box-shadow: 0 0 0 3px rgba(8, 124, 147, .12);
+    }
+
+    .segmented {
+      display: inline-grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .segmented button {
+      border: 0;
+      padding: 11px 12px;
+      background: transparent;
+      color: #334155;
+      font-weight: 850;
+    }
+
+    .segmented button.active {
+      background: linear-gradient(135deg, var(--navy), var(--sea));
+      color: white;
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .summary-pill {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: linear-gradient(180deg, #fff, #f8fbfc);
+    }
+
+    .summary-pill span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .summary-pill strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 20px;
+      color: var(--navy);
+    }
+
+    .entry-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .entry-actions .primary {
+      width: auto;
+      min-width: 160px;
+    }
+
+    .secondary {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 13px;
+      background: #fff;
+      color: #334155;
+      font-weight: 850;
+    }
+
+    .notice {
+      border: 1px solid rgba(8, 124, 147, .22);
+      background: var(--sea-soft);
+      color: #164452;
+      border-radius: 8px;
+      padding: 11px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 20;
+      max-width: min(420px, calc(100vw - 36px));
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #10212b;
+      color: white;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      font-weight: 750;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.error { background: var(--red); }
+    .toast.success { background: var(--green); }
+
     .mobile-tabs {
       display: none;
       gap: 8px;
@@ -473,6 +636,7 @@
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid { grid-template-columns: 1fr; }
       .module-grid { grid-template-columns: 1fr; }
+      .native-layout { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px) {
@@ -485,6 +649,9 @@
       .metrics { grid-template-columns: 1fr; }
       .chat-form { grid-template-columns: 1fr; }
       .frame-wrap { height: calc(100vh - 156px); min-height: 560px; }
+      .form-grid,
+      .form-grid.three,
+      .summary-strip { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -492,9 +659,9 @@
   <section class="lock" id="lock">
     <div class="lock-card">
       <div class="brand-mark"><img src="assets/nexcart-logo.jpg" alt="Nexcart"></div>
-      <div class="eyebrow">Live Sales Intelligence</div>
+      <div class="eyebrow">Affordable Statement Fashion for Black Women</div>
       <h1>Nexcart <span>Ops</span></h1>
-      <p>一个入口管理直播成交、场次复盘和 AI 经营分析。登录后系统会自动尝试连接实时数据。</p>
+      <p>把直播成交、场次复盘和 AI 经营分析集中在一个入口，围绕你的核心业务基因持续沉淀数据。</p>
       <div class="field">
         <label for="password">访问密码</label>
         <input id="password" class="input" type="password" autocomplete="current-password" placeholder="输入 Nexcart 密码">
@@ -510,7 +677,7 @@
         <div class="brand-mark"><img src="assets/nexcart-logo.jpg" alt="Nexcart"></div>
         <div class="side-title">
           <strong>Nexcart Ops</strong>
-          <span>Sea blue · Gold signal</span>
+          <span>Affordable statement fashion</span>
         </div>
       </div>
       <nav class="nav" id="nav"></nav>
@@ -574,6 +741,26 @@
           </div>
         </div>
 
+        <div class="grid" style="margin-top:16px;">
+          <div class="panel">
+            <div class="panel-head"><h3>本月概览</h3><span id="monthHint" style="color:var(--muted);font-size:13px;"></span></div>
+            <div class="summary-strip">
+              <div class="summary-pill"><span>本月场次</span><strong id="monthShows">--</strong></div>
+              <div class="summary-pill"><span>本月 GMV</span><strong id="monthRevenue">--</strong></div>
+              <div class="summary-pill"><span>本月毛利率</span><strong id="monthMargin">--</strong></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>平台拆分</h3></div>
+            <div style="overflow:auto;">
+              <table>
+                <thead><tr><th>平台</th><th>场次</th><th>GMV</th><th>毛利率</th></tr></thead>
+                <tbody id="platformBreakdown"><tr><td colspan="4">正在加载...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div class="panel" style="margin-top:14px;">
           <div class="panel-head"><h3>最近场次</h3><span id="showsHint" style="color:var(--muted);font-size:13px;"></span></div>
           <div style="overflow:auto;">
@@ -616,7 +803,104 @@
       </section>
 
       <section class="view" id="view-entry">
-        <div class="frame-wrap"><iframe src="index.html" title="场次复盘录入"></iframe></div>
+        <div class="native-layout">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>原生场次录入</h3>
+              <div class="segmented" aria-label="平台">
+                <button type="button" class="active" data-entry-platform="Whatnot">Whatnot</button>
+                <button type="button" data-entry-platform="TikTok Live">TikTok Live</button>
+              </div>
+            </div>
+            <div class="notice">v1.0-alpha：这里已经不再嵌入旧录入页，而是直接写入现有 Worker 和 Supabase 的 shows 表。旧录入页仍保留作备份。</div>
+
+            <form id="entryForm" style="margin-top:16px;">
+              <div class="form-grid">
+                <div class="native-field">
+                  <label for="entryDate">直播日期</label>
+                  <input id="entryDate" type="date" required>
+                </div>
+                <div class="native-field">
+                  <label for="entrySessionNo">场次号</label>
+                  <input id="entrySessionNo" type="number" min="1" step="1" value="1">
+                </div>
+                <div class="native-field">
+                  <label for="entryEarnings">到账金额 / GMV</label>
+                  <input id="entryEarnings" type="number" min="0" step="0.01" placeholder="例如 3567" required>
+                </div>
+                <div class="native-field">
+                  <label for="entryCost">货成本</label>
+                  <input id="entryCost" type="number" min="0" step="0.01" placeholder="例如 1300" required>
+                </div>
+              </div>
+
+              <div class="summary-strip">
+                <div class="summary-pill"><span>毛利</span><strong id="entryProfit">$0</strong></div>
+                <div class="summary-pill"><span>毛利率</span><strong id="entryMargin">0.0%</strong></div>
+                <div class="summary-pill"><span>Session ID</span><strong id="entrySessionId" style="font-size:15px;">--</strong></div>
+              </div>
+
+              <div class="form-grid three">
+                <div class="native-field">
+                  <label for="entryDuration">直播时长</label>
+                  <input id="entryDuration" type="number" min="0" step="0.1" placeholder="小时">
+                </div>
+                <div class="native-field">
+                  <label for="entryBuyers">买家数</label>
+                  <input id="entryBuyers" type="number" min="0" step="1">
+                </div>
+                <div class="native-field">
+                  <label for="entryFirstBuyers">首购人数</label>
+                  <input id="entryFirstBuyers" type="number" min="0" step="1">
+                </div>
+                <div class="native-field">
+                  <label for="entryPeak">峰值在线</label>
+                  <input id="entryPeak" type="number" min="0" step="1">
+                </div>
+                <div class="native-field">
+                  <label for="entryViews">总观看</label>
+                  <input id="entryViews" type="number" min="0" step="1">
+                </div>
+                <div class="native-field">
+                  <label for="entryLabel">场次类型</label>
+                  <select id="entryLabel">
+                    <option value="">未分类</option>
+                    <option value="变现型">变现型</option>
+                    <option value="增长型">增长型</option>
+                    <option value="平衡型">平衡型</option>
+                  </select>
+                </div>
+                <div class="native-field form-full">
+                  <label for="entryMemo">复盘备注</label>
+                  <textarea id="entryMemo" placeholder="今天最强驱动是什么？遇到什么问题？哪类货值得复盘？"></textarea>
+                </div>
+              </div>
+
+              <div class="entry-actions">
+                <button class="primary" id="entrySubmit" type="submit">提交入库</button>
+                <button class="secondary" id="entryReset" type="button">清空</button>
+                <button class="secondary" type="button" data-go="legacy-entry">打开旧录入页</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>最近场次</h3>
+              <button class="small-btn" id="entryRefresh" type="button">刷新</button>
+            </div>
+            <div style="overflow:auto;">
+              <table>
+                <thead><tr><th>日期</th><th>平台</th><th>GMV</th><th>毛利</th></tr></thead>
+                <tbody id="entryRecent"><tr><td colspan="4">正在加载...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-legacy-entry">
+        <div class="frame-wrap"><iframe src="index.html" title="旧场次复盘录入"></iframe></div>
       </section>
 
       <section class="view" id="view-agent">
@@ -624,6 +908,7 @@
       </section>
     </main>
   </section>
+  <div class="toast" id="toast"></div>
 
   <script>
     const WORKER_URL = 'https://nexcart-api.luciuschee.workers.dev';
@@ -637,6 +922,7 @@
       { id: 'entry', label: '场次录入', subtitle: '直播结束后补齐财务和运营数据.', icon: icon('clipboard') },
       { id: 'ai', label: 'AI 分析', subtitle: '用中文问你的真实经营数据.', icon: icon('sparkles') },
       { id: 'agent', label: '完整智能体', subtitle: '保留原 v5 智能体的完整能力.', icon: icon('bot') },
+      { id: 'legacy-entry', label: '旧录入页', subtitle: '旧版场次录入保留作备份.', icon: icon('clipboard'), hidden: true },
     ];
 
     function icon(name) {
@@ -714,8 +1000,8 @@
     function buildNav() {
       const nav = document.getElementById('nav');
       const mobile = document.getElementById('mobileNav');
-      nav.innerHTML = views.map(v => `<button data-view="${v.id}">${v.icon}<span>${v.label}</span></button>`).join('');
-      mobile.innerHTML = views.map(v => `<button data-view="${v.id}">${v.label}</button>`).join('');
+      nav.innerHTML = views.filter(v => !v.hidden).map(v => `<button data-view="${v.id}">${v.icon}<span>${v.label}</span></button>`).join('');
+      mobile.innerHTML = views.filter(v => !v.hidden).map(v => `<button data-view="${v.id}">${v.label}</button>`).join('');
       document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
     }
 
@@ -728,6 +1014,7 @@
       document.getElementById('viewTitle').textContent = view.label;
       document.getElementById('viewSubtitle').textContent = view.subtitle;
       if (id === 'dashboard') loadDashboard();
+      if (id === 'entry') loadEntryRecent();
     }
 
     async function login() {
@@ -776,6 +1063,7 @@
           renderStats(statsFromShows(shows));
           setStatus('online', '已连接，统计由场次数据计算');
         }
+        renderDashboardInsights(shows);
         renderShows(shows.slice(0, 8));
         document.getElementById('lastSync').textContent = '最近同步 ' + new Date().toLocaleTimeString();
       } catch (e) {
@@ -793,6 +1081,33 @@
       }, 0);
       const avgMargin = totalEarnings > 0 ? (totalProfit / totalEarnings * 100).toFixed(1) : '0.0';
       return { totalShows, totalEarnings, totalProfit, avgMargin };
+    }
+
+    function renderDashboardInsights(shows) {
+      const currentMonth = ptDateString().slice(0, 7);
+      const monthShows = shows.filter(s => String(s.show_date || '').slice(0, 7) === currentMonth);
+      const monthStats = statsFromShows(monthShows);
+      document.getElementById('monthHint').textContent = currentMonth;
+      document.getElementById('monthShows').textContent = monthStats.totalShows;
+      document.getElementById('monthRevenue').textContent = fmtMoney(monthStats.totalEarnings);
+      document.getElementById('monthMargin').textContent = monthStats.avgMargin + '%';
+
+      const byPlatform = {};
+      shows.forEach(show => {
+        const platform = show.platform || '未标记';
+        if (!byPlatform[platform]) byPlatform[platform] = [];
+        byPlatform[platform].push(show);
+      });
+      const rows = Object.entries(byPlatform).sort((a, b) => b[1].length - a[1].length).map(([platform, list]) => {
+        const stats = statsFromShows(list);
+        return `<tr>
+          <td>${platform}</td>
+          <td>${stats.totalShows}</td>
+          <td>${fmtMoney(stats.totalEarnings)}</td>
+          <td>${stats.avgMargin}%</td>
+        </tr>`;
+      });
+      document.getElementById('platformBreakdown').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4">暂无平台数据</td></tr>';
     }
 
     function renderStats(data) {
@@ -823,6 +1138,169 @@
           <td>${s.buyers ?? '--'}</td>
         </tr>`;
       }).join('');
+    }
+
+    function ptDateString(date = new Date()) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+      }, {});
+      return `${parts.year}-${parts.month}-${parts.day}`;
+    }
+
+    function sessionDateCompact(dateString) {
+      return (dateString || '').replaceAll('-', '');
+    }
+
+    function sessionPlatformName(platform) {
+      return platform === 'TikTok Live' ? 'TikTokLive' : 'Whatnot';
+    }
+
+    function getEntryPlatform() {
+      return document.querySelector('[data-entry-platform].active')?.dataset.entryPlatform || 'Whatnot';
+    }
+
+    function setEntryPlatform(platform) {
+      document.querySelectorAll('[data-entry-platform]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.entryPlatform === platform);
+      });
+      updateEntryComputed();
+    }
+
+    function updateEntryComputed() {
+      const earnings = Number(document.getElementById('entryEarnings')?.value || 0);
+      const cost = Number(document.getElementById('entryCost')?.value || 0);
+      const profit = earnings - cost;
+      const margin = earnings > 0 ? profit / earnings * 100 : 0;
+      const showDate = document.getElementById('entryDate')?.value || ptDateString();
+      const sessionNo = Number(document.getElementById('entrySessionNo')?.value || 1);
+      const sessionId = `${sessionDateCompact(showDate)}_${sessionPlatformName(getEntryPlatform())}_${sessionNo || 1}`;
+      document.getElementById('entryProfit').textContent = fmtMoney(profit);
+      document.getElementById('entryMargin').textContent = margin.toFixed(1) + '%';
+      document.getElementById('entrySessionId').textContent = sessionId;
+    }
+
+    function entryPayload() {
+      const showDate = document.getElementById('entryDate').value;
+      const earnings = Number(document.getElementById('entryEarnings').value);
+      const cost = Number(document.getElementById('entryCost').value);
+      const sessionNo = Number(document.getElementById('entrySessionNo').value || 1);
+      const grossProfit = earnings - cost;
+      if (!showDate) return { error: '请选择直播日期' };
+      if (!Number.isFinite(earnings) || earnings < 0) return { error: '请填写有效到账金额' };
+      if (!Number.isFinite(cost) || cost < 0) return { error: '请填写有效货成本' };
+      return {
+        show_date: showDate,
+        platform: getEntryPlatform(),
+        session_no: sessionNo,
+        session_id: document.getElementById('entrySessionId').textContent,
+        duration_hrs: optionalNumber('entryDuration'),
+        earnings: Number(earnings.toFixed(2)),
+        cost: Number(cost.toFixed(2)),
+        gross_profit: Number(grossProfit.toFixed(2)),
+        margin: earnings > 0 ? Number((grossProfit / earnings).toFixed(4)) : 0,
+        buyers: optionalInt('entryBuyers'),
+        first_time_buyers: optionalInt('entryFirstBuyers'),
+        max_concurrent: optionalInt('entryPeak'),
+        total_views: optionalInt('entryViews'),
+        show_label: document.getElementById('entryLabel').value || null,
+        voice_memo_text: document.getElementById('entryMemo').value.trim() || null,
+      };
+    }
+
+    function optionalNumber(id) {
+      const value = document.getElementById(id).value;
+      if (value === '') return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function optionalInt(id) {
+      const value = document.getElementById(id).value;
+      if (value === '') return null;
+      const number = parseInt(value, 10);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    async function submitEntry(event) {
+      event.preventDefault();
+      const payload = entryPayload();
+      if (payload.error) {
+        showToast(payload.error, 'error');
+        return;
+      }
+      const button = document.getElementById('entrySubmit');
+      button.disabled = true;
+      button.textContent = '提交中...';
+      try {
+        const res = await api('/shows-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 409) {
+          showToast('这个场次已经录过了。同一天、平台、场次号不能重复。', 'error');
+          return;
+        }
+        if (!res.ok) throw new Error('保存失败：' + res.status);
+        showToast('已保存到现有 Supabase shows 表', 'success');
+        resetEntryForm();
+        await loadDashboard();
+        await loadEntryRecent();
+      } catch (e) {
+        showToast(e.message || '网络错误，未写入数据', 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = '提交入库';
+      }
+    }
+
+    function resetEntryForm() {
+      ['entryEarnings', 'entryCost', 'entryDuration', 'entryBuyers', 'entryFirstBuyers', 'entryPeak', 'entryViews', 'entryMemo'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('entryLabel').value = '';
+      document.getElementById('entryDate').value = ptDateString();
+      document.getElementById('entrySessionNo').value = '1';
+      updateEntryComputed();
+    }
+
+    async function loadEntryRecent() {
+      const body = document.getElementById('entryRecent');
+      if (!body) return;
+      try {
+        const res = await api('/shows-list?limit=8');
+        if (!res.ok) throw new Error('无法加载最近场次');
+        const payload = await res.json();
+        const shows = Array.isArray(payload) ? payload : (payload.shows || payload.data || []);
+        body.innerHTML = shows.length ? shows.map(s => {
+          const revenue = Number(s.earnings || 0);
+          const profit = Number(s.gross_profit ?? (revenue - Number(s.cost || 0)));
+          return `<tr>
+            <td>${s.show_date || '--'}</td>
+            <td>${s.platform || '--'}</td>
+            <td>${fmtMoney(revenue)}</td>
+            <td style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:800;">${fmtMoney(profit)}</td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="4">暂无场次数据</td></tr>';
+      } catch (e) {
+        body.innerHTML = '<tr><td colspan="4">无法加载最近场次</td></tr>';
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.className = 'toast show ' + type;
+      toast.textContent = message;
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => {
+        toast.className = 'toast';
+      }, 3200);
     }
 
     function addMessage(role, text) {
@@ -881,6 +1359,14 @@
       });
       document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.go)));
       document.querySelectorAll('[data-question]').forEach(btn => btn.addEventListener('click', () => askAI(btn.dataset.question)));
+      document.querySelectorAll('[data-entry-platform]').forEach(btn => btn.addEventListener('click', () => setEntryPlatform(btn.dataset.entryPlatform)));
+      document.getElementById('entryForm').addEventListener('submit', submitEntry);
+      document.getElementById('entryReset').addEventListener('click', resetEntryForm);
+      document.getElementById('entryRefresh').addEventListener('click', loadEntryRecent);
+      ['entryDate', 'entrySessionNo', 'entryEarnings', 'entryCost'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateEntryComputed);
+      });
+      resetEntryForm();
 
       const saved = getPassword();
       if (saved) {
