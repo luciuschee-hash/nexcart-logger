@@ -52,14 +52,14 @@
   .lock-input-wrap input {
     width: 220px; padding: 12px 16px;
     background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text-primary); font-size: 15px;
-    outline: none; transition: border-color .2s;
+    border-radius: 10px; color: var(--text-primary); font-size: 16px;
+    outline: none; transition: border-color .2s; -webkit-appearance: none;
   }
   .lock-input-wrap input:focus { border-color: var(--accent); }
   .lock-input-wrap button {
     padding: 12px 24px; background: var(--accent); color: #fff;
-    border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: all .2s;
+    border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: all .2s; touch-action: manipulation; min-height: 44px; -webkit-appearance: none;
   }
   .lock-input-wrap button:hover { background: #059669; }
   .lock-error { color: var(--accent-red); font-size: 13px; height: 20px; }
