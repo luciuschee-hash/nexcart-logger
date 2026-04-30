@@ -1663,7 +1663,7 @@ function renderNotifications(data) {
           <span>${typeIcon} <strong>${escapeHtml(n.title || '通知')}</strong></span>
           <span style="font-size:11px;color:var(--text-muted);">${getTimeAgo(n.created_at)}</span>
         </div>
-        <div style="margin-top:6px;font-size:13px;color:var(--text-secondary);line-height:1.5;white-space:pre-wrap;">${escapeHtml(body.substring(0, 150))}${body.length > 150 ? '...' : ''</div>
+        <div style="margin-top:6px;font-size:13px;color:var(--text-secondary);line-height:1.5;white-space:pre-wrap;">${escapeHtml(body.substring(0, 150))}${body.length > 150 ? '...' : ''}</div>
       </div>`;
     });
   }
