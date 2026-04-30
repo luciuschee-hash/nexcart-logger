@@ -590,8 +590,8 @@
   <div class="lock-subtitle">业务分析智能体</div>
   <div class="lock-version">v5.1 · 鉴权 · 对话记忆 · 图片压缩</div>
   <div class="lock-input-wrap">
-    <input type="password" id="pwdInput" placeholder="请输入访问密钥" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlock()">
-    <button onclick="unlock()" id="unlockBtn">进入</button>
+    <input type="password" id="pwdInput" placeholder="请输入访问密钥" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" onkeydown="if(event.key==='Enter')unlock()">
+    <button onclick="unlock()" ontouchend="event.preventDefault(); unlock();" id="unlockBtn">进入</button>
   </div>
   <div class="lock-error" id="lockError"></div>
 </div>
@@ -901,26 +901,31 @@ function clearChatHistory() {
 
 // ============ 鉴权验证（以 /stats 作为试探请求） ============
 async function unlock() {
-  const pwd = document.getElementById('pwdInput').value.trim();
+  // 立刻给用户视觉反馈（防止"点了没反应"的错觉）
+  const errEl = document.getElementById('lockError');
+  const btn = document.getElementById('unlockBtn');
+  if (errEl) errEl.textContent = '';
+  // 强清洗：剥掉所有空白 + 零宽字符 + nbsp，避免手机粘贴混入隐形字符
+  const raw = document.getElementById('pwdInput').value || '';
+  const pwd = raw.replace(/[\s\u00A0\u200B-\u200F\uFEFF\u2028\u2029]/g, '');
   if (!pwd) {
-    document.getElementById('lockError').textContent = '请输入访问密钥';
+    if (errEl) errEl.textContent = '请输入访问密钥';
     return;
   }
-  const btn = document.getElementById('unlockBtn');
   if (btn) { btn.disabled = true; btn.textContent = '验证中...'; }
-  // 临时设置 apiSecret 发起一次验证请求
   apiSecret = pwd;
   try {
     const res = await fetch(WORKER_URL + '/stats', {
-      headers: { 'Authorization': 'Bearer ' + pwd }
+      headers: { 'Authorization': 'Bearer ' + pwd },
+      cache: 'no-store',
     });
     if (res.status === 401) {
       apiSecret = '';
-      document.getElementById('lockError').textContent = '密钥错误';
+      if (errEl) errEl.textContent = '密钥错误';
       document.getElementById('pwdInput').value = '';
     } else if (!res.ok) {
       apiSecret = '';
-      document.getElementById('lockError').textContent = '服务器错误 ' + res.status;
+      if (errEl) errEl.textContent = '服务器错误 ' + res.status;
     } else {
       // 验证通过
       sessionStorage.setItem('nexcart_api_secret', pwd);
@@ -932,11 +937,18 @@ async function unlock() {
     }
   } catch (e) {
     apiSecret = '';
-    document.getElementById('lockError').textContent = '网络错误：' + e.message;
+    if (errEl) errEl.textContent = '网络错误：' + (e && e.message ? e.message : '请检查网络');
+    console.error('[unlock] fetch failed:', e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '进入'; }
   }
-  if (btn) { btn.disabled = false; btn.textContent = '进入'; }
-  setTimeout(() => document.getElementById('lockError').textContent = '', 3000);
+  setTimeout(() => { if (errEl) errEl.textContent = ''; }, 4000);
 }
+// 全局未捕获错误兜底——出了任何错让用户能看见，不是"点了没反应"
+window.addEventListener('error', function(ev){
+  const errEl = document.getElementById('lockError');
+  if (errEl && !errEl.textContent) errEl.textContent = 'JS 错误：' + (ev.message || '未知');
+});
 
 function logout() {
   sessionStorage.removeItem('nexcart_api_secret');
