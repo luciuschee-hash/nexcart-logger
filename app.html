@@ -499,12 +499,157 @@
       white-space: pre-wrap;
     }
     .msg.user { background: var(--sea-soft); justify-self: end; max-width: 78%; }
-    .msg.ai { background: #f4f7fb; justify-self: start; max-width: 88%; }
+    .msg.ai { background: #f4f7fb; justify-self: start; max-width: 88%; white-space: normal; }
+
+    /* Markdown rendering inside .msg.ai */
+    .msg.ai h3 { color: var(--sea); font-size: 15px; margin: 10px 0 4px; font-weight: 700; }
+    .msg.ai strong { color: var(--gold-dark); font-weight: 700; }
+    .msg.ai ul, .msg.ai ol { padding-left: 22px; margin: 6px 0; }
+    .msg.ai li { margin: 3px 0; }
+    .msg.ai code { background: #eef3f7; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--sea); font-family: ui-monospace, SFMono-Regular, monospace; }
+    .msg.ai table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+    .msg.ai th, .msg.ai td { padding: 6px 10px; border: 1px solid var(--line); text-align: left; }
+    .msg.ai th { background: var(--sea-soft); color: var(--sea); font-weight: 700; }
+    .msg.ai p { margin: 6px 0; }
+    .msg.ai img.chat-img { max-width: 220px; max-height: 220px; border-radius: 8px; margin: 6px 0; border: 1px solid var(--line); cursor: zoom-in; }
+    .msg.user img.chat-img { max-width: 200px; max-height: 200px; border-radius: 8px; margin: 6px 0; }
+
+    /* Tool use / web search badges */
+    .tool-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; margin: 0 4px 6px 0;
+      background: var(--sea-soft); color: var(--sea);
+      border: 1px solid rgba(8, 124, 147, .25);
+      border-radius: 12px; font-size: 11px; font-weight: 600;
+    }
+    .tool-badge.search { background: #eaf2ff; color: var(--blue); border-color: rgba(37, 99, 235, .25); }
+    .tool-badge.save { background: #ecfdf5; color: var(--green); border-color: rgba(15, 159, 110, .3); }
+
+    /* Show detail drawer */
+    .show-drawer {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(6, 30, 41, .55);
+      display: none; align-items: stretch; justify-content: flex-end;
+      animation: fadeIn .2s ease;
+    }
+    .show-drawer.active { display: flex; }
+    .show-drawer-card {
+      width: min(680px, 100%); height: 100vh;
+      background: white; box-shadow: -20px 0 50px rgba(6, 59, 79, .25);
+      display: flex; flex-direction: column;
+      animation: slideRight .25s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideRight { from { transform: translateX(20px); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
+    .drawer-head {
+      padding: 16px 20px; border-bottom: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .drawer-head .title { font-size: 17px; font-weight: 800; color: var(--ink); }
+    .drawer-head .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .drawer-close {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--line); background: white;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); cursor: pointer; font-size: 18px;
+    }
+    .drawer-close:hover { color: var(--red); border-color: var(--red); }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+    .drawer-kpi {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      padding: 12px; background: var(--soft); border-radius: 8px; margin-bottom: 14px;
+    }
+    .drawer-kpi .k { text-align: center; }
+    .drawer-kpi .k .label { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+    .drawer-kpi .k .value { font-size: 18px; font-weight: 800; color: var(--ink); }
+    .drawer-kpi .k.gold .value { color: var(--gold-dark); }
+    .drawer-kpi .k.green .value { color: var(--green); }
+    .drawer-section {
+      background: white; border: 1px solid var(--line);
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 12px;
+    }
+    .drawer-section h4 {
+      font-size: 13px; font-weight: 800; color: var(--sea);
+      margin: 0 0 10px; display: flex; align-items: center; gap: 6px;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .drawer-section .row {
+      display: grid; grid-template-columns: 90px 1fr; gap: 8px;
+      padding: 6px 0; font-size: 13px; line-height: 1.5;
+    }
+    .drawer-section .row:not(:last-child) { border-bottom: 1px dashed var(--line); }
+    .drawer-section .row .key { color: var(--muted); font-weight: 600; }
+    .drawer-section .row .val { color: var(--ink); white-space: pre-wrap; }
+    .drawer-section .row .val.empty { color: var(--muted); font-style: italic; }
+    .stars { color: var(--gold); letter-spacing: 2px; }
+    .stars .empty { color: #cbd5e1; }
+    .diag-list { font-size: 13px; line-height: 1.65; }
+    .diag-item { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+    .diag-item:last-child { border: none; }
+    .diag-item .badge {
+      display: inline-block; font-size: 10px; padding: 2px 6px;
+      border-radius: 4px; margin-right: 6px; font-weight: 700;
+    }
+    .diag-item .badge.up { background: #dcfce7; color: #166534; }
+    .diag-item .badge.down { background: #fee2e2; color: #991b1b; }
+    .diag-item .badge.eq { background: #e2e8f0; color: #334155; }
+    .drawer-actions {
+      display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--line);
+      background: var(--soft);
+    }
+    .drawer-actions button {
+      flex: 1; padding: 12px; border-radius: 8px; font-weight: 700;
+      border: 1px solid var(--line); background: white; color: var(--ink);
+    }
+    .drawer-actions button.primary {
+      background: linear-gradient(135deg, var(--navy), var(--sea));
+      color: white; border: 0;
+    }
+    /* Click hint on rows */
+    #recentShows tr { cursor: pointer; transition: background .15s; }
+    #recentShows tr:hover { background: var(--sea-soft); }
+    @media (max-width: 768px) {
+      .show-drawer { align-items: flex-end; }
+      .show-drawer-card { width: 100%; max-height: 92vh; height: auto; border-radius: 16px 16px 0 0; }
+      .drawer-kpi { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Chat form with image button */
     .chat-form {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 112px;
+      grid-template-columns: 48px minmax(0, 1fr) 112px;
       gap: 10px;
+      align-items: end;
     }
+    .img-btn {
+      width: 48px; height: 48px;
+      background: white; border: 1px solid var(--line);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s; position: relative;
+    }
+    .img-btn:hover, .img-btn.has-image { border-color: var(--sea); background: var(--sea-soft); color: var(--sea); }
+    .img-btn input[type="file"] { display: none; }
+    .img-btn svg { width: 22px; height: 22px; }
+    .img-preview {
+      display: none; align-items: center; gap: 10px;
+      padding: 8px 12px; margin-bottom: 8px;
+      background: var(--sea-soft); border: 1px solid rgba(8, 124, 147, .2);
+      border-radius: 8px;
+    }
+    .img-preview.active { display: flex; }
+    .img-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--sea); }
+    .img-preview .info { flex: 1; font-size: 13px; color: var(--ink); }
+    .img-preview .info .small { font-size: 11px; color: var(--muted); }
+    .img-preview .remove {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1px solid var(--line); background: white;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); cursor: pointer;
+    }
+    .img-preview .remove:hover { color: var(--red); border-color: var(--red); }
+
     textarea.input { min-height: 48px; resize: vertical; }
 
     .frame-wrap {
@@ -882,10 +1027,22 @@
             <div class="panel-head"><h3>AI 经营助手</h3></div>
             <div class="chat-box">
               <div class="chat-log" id="chatLog">
-                <div class="msg ai">你可以问：今晚应该上什么货、哪个平台更适合、最近毛利为什么变化、这个月复盘怎么写。</div>
+                <div class="msg ai">你可以问：今晚应该上什么货、哪个平台更适合、最近毛利为什么变化、这个月复盘怎么写。也可以点 📷 上传商品图，让 AI 给采购/定价决策。</div>
+              </div>
+              <div class="img-preview" id="imgPreview">
+                <img id="imgPreviewThumb" src="" alt="">
+                <div class="info">
+                  <div id="imgPreviewName">image.jpg</div>
+                  <div class="small">发送时随消息一起分析</div>
+                </div>
+                <button type="button" class="remove" id="imgPreviewRemove" aria-label="移除">✕</button>
               </div>
               <div class="chat-form">
-                <textarea id="chatInput" class="input" placeholder="输入你的经营问题"></textarea>
+                <label class="img-btn" id="imgBtn" title="上传商品图（Skill A 采购决策）">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <input type="file" id="imgFile" accept="image/*" capture="environment">
+                </label>
+                <textarea id="chatInput" class="input" placeholder="输入你的经营问题（或上传图片直接问）"></textarea>
                 <button id="sendBtn" class="primary">发送</button>
               </div>
             </div>
@@ -1018,6 +1175,41 @@
       </section>
     </main>
   </section>
+  <!-- Show detail drawer -->
+  <div class="show-drawer" id="showDrawer" role="dialog" aria-modal="true">
+    <div class="show-drawer-card">
+      <div class="drawer-head">
+        <div>
+          <div class="title" id="drawerTitle">场次详情</div>
+          <div class="meta" id="drawerMeta"></div>
+        </div>
+        <button class="drawer-close" id="drawerClose" aria-label="关闭">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-kpi" id="drawerKpi"></div>
+
+        <div class="drawer-section">
+          <h4>📋 当时的计划（直播前 Skill）</h4>
+          <div id="drawerPlan"></div>
+        </div>
+
+        <div class="drawer-section">
+          <h4>💭 实际复盘（直播后 Skill）</h4>
+          <div id="drawerReview"></div>
+        </div>
+
+        <div class="drawer-section">
+          <h4>🎯 自动诊断（计划 vs 实际）</h4>
+          <div class="diag-list" id="drawerDiag"></div>
+        </div>
+      </div>
+      <div class="drawer-actions">
+        <button id="drawerCopyBtn">📋 复制全部到剪贴板</button>
+        <button class="primary" id="drawerNextPlanBtn">🚀 基于这场生成下场计划</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
@@ -1227,18 +1419,22 @@
       document.getElementById('mMargin').textContent = (data.avgMargin ?? data.avg_margin ?? '--') + (String(data.avgMargin ?? data.avg_margin ?? '').includes('%') ? '' : '%');
     }
 
+    let allShows = [];
+
     function renderShows(shows) {
+      allShows = shows; // cache for detail drawer
       const body = document.getElementById('recentShows');
-      document.getElementById('showsHint').textContent = shows.length ? `${shows.length} 条` : '';
+      document.getElementById('showsHint').textContent = shows.length ? `${shows.length} 条 · 点击行查看详情` : '';
       if (!shows.length) {
         body.innerHTML = '<tr><td colspan="7">暂无场次数据</td></tr>';
         return;
       }
-      body.innerHTML = shows.map(s => {
+      body.innerHTML = shows.map((s, i) => {
         const revenue = s.earnings ?? s.revenue ?? 0;
         const cost = s.cost ?? 0;
         const profit = s.gross_profit ?? s.profit ?? (revenue - cost);
-        return `<tr>
+        const sid = s.id || ('idx_' + i);
+        return `<tr data-show-id="${sid}" data-show-idx="${i}">
           <td>${s.show_date || s.date || '--'}</td>
           <td>${s.platform || '--'}</td>
           <td>${fmtMoney(revenue)}</td>
@@ -1413,45 +1609,339 @@
       }, 3200);
     }
 
-    function addMessage(role, text) {
+    let pendingImage = null;
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(text == null ? '' : text).replace(/[&<>"']/g, c => map[c]);
+    }
+
+    function formatMarkdown(text) {
+      let html = escapeHtml(text);
+      html = html.replace(/\n?\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, function(match, header, body) {
+        const ths = header.split('|').filter(c => c.trim()).map(c => '<th>' + c.trim() + '</th>').join('');
+        const rows = body.trim().split('\n').map(row => {
+          const tds = row.split('|').filter(c => c.trim()).map(c => '<td>' + c.trim() + '</td>').join('');
+          return '<tr>' + tds + '</tr>';
+        }).join('');
+        return '<table><thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table>';
+      });
+      html = html.replace(/^#{1,3}\s+(.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      html = html.replace(/^[•\-\*]\s+(.+)$/gm, '<li>$1</li>');
+      html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>[\s\S]*?<\/li>(?:\s*<li>[\s\S]*?<\/li>)*)/g, '<ul>$1</ul>');
+      html = html.replace(/<\/ul>\s*<ul>/g, '');
+      html = html.replace(/\n{2,}/g, '</p><p>');
+      html = html.replace(/\n/g, '<br>');
+      return '<p>' + html + '</p>';
+    }
+
+    function addMessage(role, text, opts) {
       const log = document.getElementById('chatLog');
       const div = document.createElement('div');
       div.className = 'msg ' + role;
-      div.textContent = text;
+      let html = '';
+      if (opts && opts.imageUrl) html += '<img class="chat-img" src="' + opts.imageUrl + '" alt="">';
+      if (role === 'ai') {
+        if (opts && opts.toolsUsed && opts.toolsUsed.length) {
+          const toolNames = { query_shows: '场次查询', query_sales: '单品查询', get_summary_stats: '全局统计', save_skill_run: '已保存到通知' };
+          [...new Set(opts.toolsUsed)].forEach(function(t) {
+            const cls = t === 'save_skill_run' ? 'tool-badge save' : 'tool-badge';
+            const icon = t === 'save_skill_run' ? '💾' : '🔍';
+            html += '<span class="' + cls + '">' + icon + ' ' + (toolNames[t] || t) + '</span>';
+          });
+        }
+        if (opts && opts.webSearch) html += '<span class="tool-badge search">🌐 全网比价</span>';
+        if (text) html += formatMarkdown(text);
+      } else {
+        if (text) html += '<div>' + escapeHtml(text) + '</div>';
+      }
+      div.innerHTML = html;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
       return div;
     }
 
+    function updateMessage(div, text, opts) {
+      let html = '';
+      if (opts && opts.imageUrl) html += '<img class="chat-img" src="' + opts.imageUrl + '" alt="">';
+      if (opts && opts.toolsUsed && opts.toolsUsed.length) {
+        const toolNames = { query_shows: '场次查询', query_sales: '单品查询', get_summary_stats: '全局统计', save_skill_run: '已保存到通知' };
+        [...new Set(opts.toolsUsed)].forEach(function(t) {
+          const cls = t === 'save_skill_run' ? 'tool-badge save' : 'tool-badge';
+          const icon = t === 'save_skill_run' ? '💾' : '🔍';
+          html += '<span class="' + cls + '">' + icon + ' ' + (toolNames[t] || t) + '</span>';
+        });
+      }
+      if (opts && opts.webSearch) html += '<span class="tool-badge search">🌐 全网比价</span>';
+      html += formatMarkdown(text || '');
+      div.innerHTML = html;
+      const log = document.getElementById('chatLog');
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function clearPendingImage() {
+      pendingImage = null;
+      document.getElementById('imgPreview').classList.remove('active');
+      const f = document.getElementById('imgFile');
+      if (f) f.value = '';
+      document.getElementById('imgBtn').classList.remove('has-image');
+    }
+
+    function handleImageSelect(file) {
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { showToast('图片太大（>10MB），请压缩后再传', 'error'); return; }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const base64 = dataUrl.split(',')[1];
+        pendingImage = { base64: base64, mediaType: file.type || 'image/jpeg', dataUrl: dataUrl, fileName: file.name };
+        document.getElementById('imgPreviewThumb').src = dataUrl;
+        document.getElementById('imgPreviewName').textContent = file.name;
+        document.getElementById('imgPreview').classList.add('active');
+        document.getElementById('imgBtn').classList.add('has-image');
+      };
+      reader.readAsDataURL(file);
+    }
+
     async function askAI(question) {
       const input = document.getElementById('chatInput');
       const text = (question || input.value).trim();
-      if (!text) return;
+      const hasImage = !!pendingImage;
+      if (!text && !hasImage) return;
       input.value = '';
       showView('ai');
-      addMessage('user', text);
-      const pending = addMessage('ai', '正在查询你的业务数据...');
-      chatHistory.push({ role: 'user', content: text });
+      addMessage('user', text || '请分析这个商品', hasImage ? { imageUrl: pendingImage.dataUrl } : null);
+      const pending = addMessage('ai', hasImage ? '正在识别商品 + 全网比价 + 调用决策 skill...' : '正在查询你的业务数据...');
+      chatHistory.push({ role: 'user', content: text || '[上传了商品图片进行分析]' });
       document.getElementById('sendBtn').disabled = true;
       try {
+        const body = hasImage
+          ? { image: { base64: pendingImage.base64, mediaType: pendingImage.mediaType }, userMessage: text || '请识别这个商品的品牌、品类，按 Skill A 采购决策给出 Buy/Test Small/Pass 结论。', session_id: SESSION_ID }
+          : { max_tokens: 1800, messages: chatHistory.slice(-10), session_id: SESSION_ID };
         const res = await api('', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            max_tokens: 1800,
-            messages: chatHistory.slice(-10),
-            session_id: SESSION_ID,
-          }),
+          body: JSON.stringify(body),
         });
         const result = await res.json();
         const reply = result.content && result.content[0] ? result.content[0].text : (result.error ? JSON.stringify(result.error) : '返回数据异常，请重试。');
-        pending.textContent = reply;
+        const opts = { toolsUsed: result._tools_used || [], webSearch: !!(result._webSearch || result._productInfo) };
+        updateMessage(pending, reply, opts);
         chatHistory.push({ role: 'assistant', content: reply });
+        if (hasImage) clearPendingImage();
       } catch (e) {
-        pending.textContent = '分析失败：' + (e.message || '请稍后重试');
+        updateMessage(pending, '分析失败：' + (e.message || '请稍后重试'));
       } finally {
         document.getElementById('sendBtn').disabled = false;
       }
+    }
+
+    let currentShow = null;
+
+    function openShowDetail(show) {
+      currentShow = show;
+      const drawer = document.getElementById('showDrawer');
+      drawer.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      const date = show.show_date || show.date || '--';
+      const platform = show.platform || '--';
+      const sessionNo = show.session_no ? '第 ' + show.session_no + ' 场' : '';
+      document.getElementById('drawerTitle').textContent = date + '  ' + platform + (sessionNo ? '  ' + sessionNo : '');
+      const labelText = show.show_label ? '· ' + show.show_label : '';
+      document.getElementById('drawerMeta').textContent = '时长 ' + (show.duration_hrs || 0) + 'h ' + labelText;
+      // KPI
+      const revenue = Number(show.earnings || show.revenue || 0);
+      const cost = Number(show.cost || 0);
+      const profit = Number(show.gross_profit ?? show.profit ?? (revenue - cost));
+      const buyers = Number(show.buyers || 0);
+      const aov = buyers > 0 ? (revenue / buyers).toFixed(2) : '--';
+      const margin = revenue > 0 ? (profit / revenue * 100).toFixed(1) + '%' : '--';
+      document.getElementById('drawerKpi').innerHTML = `
+        <div class="k gold"><div class="label">GMV</div><div class="value">${fmtMoney(revenue)}</div></div>
+        <div class="k green"><div class="label">毛利率</div><div class="value">${margin}</div></div>
+        <div class="k"><div class="label">买家</div><div class="value">${buyers}</div></div>
+        <div class="k"><div class="label">AOV</div><div class="value">$${aov}</div></div>
+      `;
+      renderDrawerPlan(show);
+      renderDrawerReview(show);
+      renderDrawerDiagnosis(show);
+    }
+
+    function closeShowDetail() {
+      document.getElementById('showDrawer').classList.remove('active');
+      document.body.style.overflow = '';
+      currentShow = null;
+    }
+
+    function planRow(label, value) {
+      const has = value != null && String(value).trim() !== '';
+      const valHtml = has ? escapeHtml(String(value)) : '（未填写）';
+      const cls = has ? 'val' : 'val empty';
+      return `<div class="row"><div class="key">${label}</div><div class="${cls}">${valHtml}</div></div>`;
+    }
+
+    function renderDrawerPlan(show) {
+      const fields = [
+        ['hypothesis', '本场假设', show.plan_hypothesis],
+        ['hook', '引流款', show.plan_hook_product],
+        ['closer', '利润款', show.plan_closer_product],
+        ['price', '价格策略', show.plan_price_strategy],
+      ];
+      const rows = fields.map(([k, label, val]) => planRow(label, val)).join('');
+      const allEmpty = fields.every(([, , v]) => !v || String(v).trim() === '');
+      let html = rows;
+      if (allEmpty) {
+        html = '<div class="row"><div class="val empty" style="grid-column: 1/-1;">这场没有提前生成计划。<br>下次开播前在 AI 分析里点"直播前计划"按钮，AI 会自动写回这些字段。</div></div>';
+      }
+      document.getElementById('drawerPlan').innerHTML = html;
+    }
+
+    function starRating(score) {
+      const n = Math.max(0, Math.min(5, parseInt(score) || 0));
+      let s = '';
+      for (let i = 0; i < 5; i++) s += i < n ? '★' : '<span class="empty">★</span>';
+      return '<span class="stars">' + s + '</span> <span style="color:var(--muted);font-size:12px;">(' + n + '/5)</span>';
+    }
+
+    function renderDrawerReview(show) {
+      const vibe = show.vibe;
+      const wins = show.wins;
+      const losses = show.losses;
+      const conf = show.confidence_repeat;
+      const rows = [
+        planRow('场感', vibe),
+        planRow('Wins', wins),
+        planRow('Losses', losses),
+      ];
+      if (conf != null && conf !== '') {
+        rows.push('<div class="row"><div class="key">下次复用信心</div><div class="val">' + starRating(conf) + '</div></div>');
+      } else {
+        rows.push(planRow('下次复用信心', null));
+      }
+      const allEmpty = !vibe && !wins && !losses && (conf == null || conf === '');
+      let html = rows.join('');
+      if (allEmpty) {
+        html = '<div class="row"><div class="val empty" style="grid-column: 1/-1;">这场还没复盘。<br>下播后在 AI 分析里点"直播后复盘"按钮，AI 会自动写回这些字段。</div></div>';
+      }
+      document.getElementById('drawerReview').innerHTML = html;
+    }
+
+    function renderDrawerDiagnosis(show) {
+      const items = [];
+      const revenue = Number(show.earnings || 0);
+      const cost = Number(show.cost || 0);
+      const profit = Number(show.gross_profit ?? (revenue - cost));
+      const buyers = Number(show.buyers || 0);
+      const firstBuyers = Number(show.first_time_buyers || 0);
+      const margin = revenue > 0 ? (profit / revenue) : 0;
+
+      // Compare against same-platform recent average (last 5 shows on same platform, excluding this one)
+      const sameOther = allShows.filter(s => s.platform === show.platform && (s.id || '') !== (show.id || '')).slice(0, 5);
+      if (sameOther.length >= 2) {
+        const avgRev = sameOther.reduce((sum, s) => sum + Number(s.earnings || 0), 0) / sameOther.length;
+        const avgBuyers = sameOther.reduce((sum, s) => sum + Number(s.buyers || 0), 0) / sameOther.length;
+        const avgMargin = sameOther.reduce((sum, s) => {
+          const r = Number(s.earnings || 0), c = Number(s.cost || 0);
+          const p = Number(s.gross_profit ?? (r - c));
+          return sum + (r > 0 ? p / r : 0);
+        }, 0) / sameOther.length;
+        items.push(diffItem('GMV', revenue, avgRev, fmtMoney));
+        items.push(diffItem('买家数', buyers, avgBuyers, v => Math.round(v)));
+        items.push(diffItem('毛利率', margin * 100, avgMargin * 100, v => v.toFixed(1) + '%'));
+      } else {
+        items.push('<div class="diag-item">同平台历史数据不足（少于 2 场），无法做基线对比。</div>');
+      }
+
+      // Check plan vs actual fragments (very basic — keyword match)
+      const hookPlan = (show.plan_hook_product || '').trim();
+      const wins = (show.wins || '').toLowerCase();
+      const losses = (show.losses || '').toLowerCase();
+      if (hookPlan) {
+        const hookKey = hookPlan.split(/[\s,，、；;]/)[0].toLowerCase();
+        if (hookKey && wins.includes(hookKey)) {
+          items.push('<div class="diag-item"><span class="badge up">假设成立</span>引流款"' + escapeHtml(hookPlan.slice(0, 30)) + '"在 wins 里被提到，假设验证。</div>');
+        } else if (hookKey && losses.includes(hookKey)) {
+          items.push('<div class="diag-item"><span class="badge down">假设落空</span>引流款"' + escapeHtml(hookPlan.slice(0, 30)) + '"在 losses 里被提到，下场需要换 hook。</div>');
+        }
+      }
+
+      // First-time buyer ratio diagnostic
+      if (buyers > 0) {
+        const fr = firstBuyers / buyers * 100;
+        if (fr > 60) items.push('<div class="diag-item"><span class="badge up">拉新型</span>首购占比 ' + fr.toFixed(0) + '%，这场偏拉新。</div>');
+        else if (fr < 25 && firstBuyers > 0) items.push('<div class="diag-item"><span class="badge eq">变现型</span>首购占比 ' + fr.toFixed(0) + '%，这场偏老客变现。</div>');
+      }
+
+      if (items.length === 0) {
+        items.push('<div class="diag-item">数据不足，无法生成自动诊断。补全 plan_* 和 wins/losses 字段后会更准确。</div>');
+      }
+
+      document.getElementById('drawerDiag').innerHTML = items.join('');
+    }
+
+    function diffItem(name, actual, baseline, formatter) {
+      if (!baseline) return '<div class="diag-item">' + name + '：基线为 0，跳过对比。</div>';
+      const pct = ((actual - baseline) / baseline * 100);
+      const cls = pct > 5 ? 'up' : pct < -5 ? 'down' : 'eq';
+      const arrow = pct > 5 ? '↑' : pct < -5 ? '↓' : '≈';
+      const label = pct > 5 ? '高于基线' : pct < -5 ? '低于基线' : '基本持平';
+      return '<div class="diag-item"><span class="badge ' + cls + '">' + label + '</span>' + name + '：' + formatter(actual) + ' vs 同平台均值 ' + formatter(baseline) + ' （' + arrow + ' ' + Math.abs(pct).toFixed(1) + '%）</div>';
+    }
+
+    function copyDrawerContent() {
+      if (!currentShow) return;
+      const s = currentShow;
+      const lines = [
+        s.show_date + ' ' + (s.platform || '') + ' 场次详情',
+        '─────────────────────',
+        'GMV: ' + fmtMoney(Number(s.earnings || 0)),
+        '毛利: ' + fmtMoney(Number(s.gross_profit || 0)),
+        '买家: ' + (s.buyers || 0) + (s.first_time_buyers ? '（首购 ' + s.first_time_buyers + '）' : ''),
+        '',
+        '【计划】',
+        s.plan_hypothesis ? '假设: ' + s.plan_hypothesis : '（无）',
+        s.plan_hook_product ? 'Hook: ' + s.plan_hook_product : '',
+        s.plan_closer_product ? 'Closer: ' + s.plan_closer_product : '',
+        s.plan_price_strategy ? '价格: ' + s.plan_price_strategy : '',
+        '',
+        '【复盘】',
+        s.vibe ? '场感: ' + s.vibe : '（无）',
+        s.wins ? 'Wins: ' + s.wins : '',
+        s.losses ? 'Losses: ' + s.losses : '',
+        s.confidence_repeat ? '复用信心: ' + s.confidence_repeat + '/5' : '',
+      ].filter(l => l !== '').join('\n');
+      navigator.clipboard.writeText(lines).then(
+        () => showToast('已复制到剪贴板', 'success'),
+        () => showToast('复制失败', 'error')
+      );
+    }
+
+    function generateNextShowPlan() {
+      if (!currentShow) return;
+      const s = currentShow;
+      const ctx = [
+        '基于这场实际数据，给我下场直播的完整计划。',
+        '',
+        '【上场基本数据】' + (s.show_date || '') + ' ' + (s.platform || ''),
+        'GMV: $' + (s.earnings || 0) + '，毛利率: ' + ((s.margin || 0) * 100).toFixed(1) + '%，买家: ' + (s.buyers || 0),
+        '',
+        '【上场计划】',
+        s.plan_hypothesis ? '假设: ' + s.plan_hypothesis : '（无）',
+        s.plan_hook_product ? 'Hook: ' + s.plan_hook_product : '',
+        s.plan_closer_product ? 'Closer: ' + s.plan_closer_product : '',
+        '',
+        '【上场复盘】',
+        s.wins ? 'Wins: ' + s.wins : '',
+        s.losses ? 'Losses: ' + s.losses : '',
+        '',
+        '请按 Skill B 直播前计划的 7 字段输出，并明确指出哪些保留、哪些更换、哪些测试。',
+      ].filter(l => l !== '').join('\n');
+      closeShowDetail();
+      showView('ai');
+      askAI(ctx);
     }
 
     function boot() {
@@ -1469,10 +1959,26 @@
       });
       document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.go)));
       document.querySelectorAll('[data-question]').forEach(btn => btn.addEventListener('click', () => askAI(btn.dataset.question)));
+      document.getElementById('imgFile').addEventListener('change', e => handleImageSelect(e.target.files[0]));
+      document.getElementById('imgPreviewRemove').addEventListener('click', clearPendingImage);
       document.querySelectorAll('[data-entry-platform]').forEach(btn => btn.addEventListener('click', () => setEntryPlatform(btn.dataset.entryPlatform)));
       document.getElementById('entryForm').addEventListener('submit', submitEntry);
       document.getElementById('entryReset').addEventListener('click', resetEntryForm);
       document.getElementById('entryRefresh').addEventListener('click', loadEntryRecent);
+      // Show detail drawer wiring
+      document.getElementById('recentShows').addEventListener('click', function(e) {
+        const tr = e.target.closest('tr[data-show-idx]');
+        if (!tr) return;
+        const idx = parseInt(tr.dataset.showIdx, 10);
+        if (!isNaN(idx) && allShows[idx]) openShowDetail(allShows[idx]);
+      });
+      document.getElementById('drawerClose').addEventListener('click', closeShowDetail);
+      document.getElementById('showDrawer').addEventListener('click', function(e) {
+        if (e.target === this) closeShowDetail();
+      });
+      document.getElementById('drawerCopyBtn').addEventListener('click', copyDrawerContent);
+      document.getElementById('drawerNextPlanBtn').addEventListener('click', generateNextShowPlan);
+
       ['entryDate', 'entrySessionNo', 'entryEarnings', 'entryCost'].forEach(id => {
         document.getElementById(id).addEventListener('input', updateEntryComputed);
       });
