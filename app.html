@@ -1776,10 +1776,29 @@
       currentShow = null;
     }
 
+    // Detect [object Object] garbage caused by old worker stringifying JS objects directly
+    function isCorruptedString(value) {
+      if (value == null) return false;
+      const s = String(value).trim();
+      if (!s) return false;
+      if (/^(\[object Object\])(,\s*\[object Object\])*$/.test(s)) return true;
+      if (s.includes('[object Object]')) return true;
+      return false;
+    }
+
     function planRow(label, value) {
       const has = value != null && String(value).trim() !== '';
-      const valHtml = has ? escapeHtml(String(value)) : '（未填写）';
-      const cls = has ? 'val' : 'val empty';
+      let valHtml, cls;
+      if (!has) {
+        valHtml = '（未填写）';
+        cls = 'val empty';
+      } else if (isCorruptedString(value)) {
+        valHtml = '⚠️ 旧数据格式异常 <span style="color:var(--muted);font-size:11px;">（请用下方"基于这场生成下场计划"按钮重新生成 skill 修复）</span>';
+        cls = 'val';
+      } else {
+        valHtml = escapeHtml(String(value));
+        cls = 'val';
+      }
       return `<div class="row"><div class="key">${label}</div><div class="${cls}">${valHtml}</div></div>`;
     }
 
