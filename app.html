@@ -1133,8 +1133,12 @@
                   <input id="entryDuration" type="number" min="0" step="0.1" placeholder="小时">
                 </div>
                 <div class="native-field">
-                  <label for="entryBuyers">买家数</label>
-                  <input id="entryBuyers" type="number" min="0" step="1">
+                  <label for="entryBuyers">买家数（人）</label>
+                  <input id="entryBuyers" type="number" min="0" step="1" placeholder="一个人算一个">
+                </div>
+                <div class="native-field">
+                  <label for="entryItemsSold">成交件数 / sold</label>
+                  <input id="entryItemsSold" type="number" min="0" step="1" placeholder="一件算一件 (用于算 AOV)">
                 </div>
                 <div class="native-field">
                   <label for="entryFirstBuyers">首购人数</label>
@@ -1531,6 +1535,7 @@
         gross_profit: Number(grossProfit.toFixed(2)),
         margin: earnings > 0 ? Number((grossProfit / earnings).toFixed(4)) : 0,
         buyers: optionalInt('entryBuyers'),
+        items_sold: optionalInt('entryItemsSold'),
         first_time_buyers: optionalInt('entryFirstBuyers'),
         max_concurrent: optionalInt('entryPeak'),
         total_views: optionalInt('entryViews'),
@@ -1587,7 +1592,7 @@
     }
 
     function resetEntryForm() {
-      ['entryEarnings', 'entryCost', 'entryDuration', 'entryBuyers', 'entryFirstBuyers', 'entryPeak', 'entryViews', 'entryMemo'].forEach(id => {
+      ['entryEarnings', 'entryCost', 'entryDuration', 'entryBuyers', 'entryItemsSold', 'entryFirstBuyers', 'entryPeak', 'entryViews', 'entryMemo'].forEach(id => {
         document.getElementById(id).value = '';
       });
       document.getElementById('entryLabel').value = '';
@@ -1972,13 +1977,15 @@
       const cost = Number(show.cost || 0);
       const profit = Number(show.gross_profit ?? show.profit ?? (revenue - cost));
       const buyers = Number(show.buyers || 0);
-      const aov = buyers > 0 ? (revenue / buyers).toFixed(2) : '--';
+      const itemsSold = Number(show.items_sold || 0);
+      const aov = itemsSold > 0 ? (revenue / itemsSold).toFixed(2) : '--';
+      const revPerBuyer = buyers > 0 ? (revenue / buyers).toFixed(2) : '--';
       const margin = revenue > 0 ? (profit / revenue * 100).toFixed(1) + '%' : '--';
       document.getElementById('drawerKpi').innerHTML = `
         <div class="k gold"><div class="label">GMV</div><div class="value">${fmtMoney(revenue)}</div></div>
         <div class="k green"><div class="label">毛利率</div><div class="value">${margin}</div></div>
-        <div class="k"><div class="label">买家</div><div class="value">${buyers}</div></div>
-        <div class="k"><div class="label">AOV</div><div class="value">$${aov}</div></div>
+        <div class="k"><div class="label">买家 / 件数</div><div class="value">${buyers} / ${itemsSold || '—'}</div></div>
+        <div class="k"><div class="label">AOV (件单价)</div><div class="value">${itemsSold > 0 ? '$' + aov : '需录入 sold'}</div></div>
       `;
       renderDrawerPlan(show);
       renderDrawerReview(show);
