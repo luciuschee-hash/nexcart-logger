@@ -618,37 +618,45 @@
     /* Chat form with image button */
     .chat-form {
       display: grid;
-      grid-template-columns: 48px minmax(0, 1fr) 112px;
+      grid-template-columns: 48px 48px minmax(0, 1fr) 112px;
       gap: 10px;
       align-items: end;
     }
-    .img-btn {
+    .img-btn, .doc-btn {
       width: 48px; height: 48px;
       background: white; border: 1px solid var(--line);
       border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
       transition: all .2s; position: relative;
+      cursor: pointer; color: var(--muted);
     }
-    .img-btn:hover, .img-btn.has-image { border-color: var(--sea); background: var(--sea-soft); color: var(--sea); }
-    .img-btn input[type="file"] { display: none; }
-    .img-btn svg { width: 22px; height: 22px; }
-    .img-preview {
+    .img-btn:hover, .img-btn.has-image,
+    .doc-btn:hover, .doc-btn.has-doc { border-color: var(--sea); background: var(--sea-soft); color: var(--sea); }
+    .img-btn input[type="file"], .doc-btn input[type="file"] { display: none; }
+    .img-btn svg, .doc-btn svg { width: 22px; height: 22px; }
+    .img-preview, .doc-preview {
       display: none; align-items: center; gap: 10px;
       padding: 8px 12px; margin-bottom: 8px;
       background: var(--sea-soft); border: 1px solid rgba(8, 124, 147, .2);
       border-radius: 8px;
     }
-    .img-preview.active { display: flex; }
+    .img-preview.active, .doc-preview.active { display: flex; }
     .img-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--sea); }
-    .img-preview .info { flex: 1; font-size: 13px; color: var(--ink); }
-    .img-preview .info .small { font-size: 11px; color: var(--muted); }
-    .img-preview .remove {
+    .doc-preview .doc-icon {
+      width: 48px; height: 48px; border-radius: 6px;
+      background: var(--sea); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    }
+    .img-preview .info, .doc-preview .info { flex: 1; font-size: 13px; color: var(--ink); }
+    .img-preview .info .small, .doc-preview .info .small { font-size: 11px; color: var(--muted); }
+    .img-preview .remove, .doc-preview .remove {
       width: 28px; height: 28px; border-radius: 50%;
       border: 1px solid var(--line); background: white;
       display: flex; align-items: center; justify-content: center;
       color: var(--muted); cursor: pointer;
     }
-    .img-preview .remove:hover { color: var(--red); border-color: var(--red); }
+    .img-preview .remove:hover, .doc-preview .remove:hover { color: var(--red); border-color: var(--red); }
 
     textarea.input { min-height: 48px; resize: vertical; }
 
@@ -1027,22 +1035,34 @@
             <div class="panel-head"><h3>AI 经营助手</h3></div>
             <div class="chat-box">
               <div class="chat-log" id="chatLog">
-                <div class="msg ai">你可以问：今晚应该上什么货、哪个平台更适合、最近毛利为什么变化、这个月复盘怎么写。也可以点 📷 上传商品图，让 AI 给采购/定价决策。</div>
+                <div class="msg ai">你可以问：今晚应该上什么货、哪个平台更适合、最近毛利为什么变化、这个月复盘怎么写。也可以点 📷 上传商品图问采购/定价，或点 📎 上传 PDF / Word / Excel / TXT 让 AI 阅读分析。</div>
               </div>
               <div class="img-preview" id="imgPreview">
                 <img id="imgPreviewThumb" src="" alt="">
                 <div class="info">
                   <div id="imgPreviewName">image.jpg</div>
-                  <div class="small">发送时随消息一起分析</div>
+                  <div class="small" id="imgPreviewSize">发送时随消息一起分析</div>
                 </div>
                 <button type="button" class="remove" id="imgPreviewRemove" aria-label="移除">✕</button>
               </div>
+              <div class="doc-preview" id="docPreview">
+                <div class="doc-icon" id="docPreviewIcon">DOC</div>
+                <div class="info">
+                  <div id="docPreviewName">document</div>
+                  <div class="small" id="docPreviewSize">解析中…</div>
+                </div>
+                <button type="button" class="remove" id="docPreviewRemove" aria-label="移除">✕</button>
+              </div>
               <div class="chat-form">
-                <label class="img-btn" id="imgBtn" title="上传商品图（Skill A 采购决策）">
+                <label class="img-btn" id="imgBtn" title="上传图片（拍照 / 相册）">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  <input type="file" id="imgFile" accept="image/*" capture="environment">
+                  <input type="file" id="imgFile" accept="image/*">
                 </label>
-                <textarea id="chatInput" class="input" placeholder="输入你的经营问题（或上传图片直接问）"></textarea>
+                <label class="doc-btn" id="docBtn" title="上传文档（PDF / Word / Excel / TXT）">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                  <input type="file" id="docFile" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.log">
+                </label>
+                <textarea id="chatInput" class="input" placeholder="输入你的经营问题（或上传图片/文档直接问）"></textarea>
                 <button id="sendBtn" class="primary">发送</button>
               </div>
             </div>
@@ -1690,36 +1710,230 @@
       document.getElementById('imgBtn').classList.remove('has-image');
     }
 
-    function handleImageSelect(file) {
+    let pendingDoc = null;
+    function clearPendingDoc() {
+      pendingDoc = null;
+      document.getElementById('docPreview').classList.remove('active');
+      const f = document.getElementById('docFile');
+      if (f) f.value = '';
+      document.getElementById('docBtn').classList.remove('has-doc');
+    }
+
+    function fmtSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+
+    // ---------- 客户端图片压缩：长边 ≤1600px，目标 <4MB，质量自适应 ----------
+    async function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let { naturalWidth: w, naturalHeight: h } = img;
+          const MAX = 1600;
+          if (w > MAX || h > MAX) {
+            const s = MAX / Math.max(w, h);
+            w = Math.round(w * s); h = Math.round(h * s);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const TARGET = 4 * 1024 * 1024; // 4 MB safety margin under 5 MB API limit
+          const tryQ = (q) => {
+            canvas.toBlob((blob) => {
+              if (!blob) { reject(new Error('压缩失败')); return; }
+              if (blob.size <= TARGET || q <= 0.4) {
+                const r = new FileReader();
+                r.onload = (e) => {
+                  const dataUrl = e.target.result;
+                  resolve({
+                    base64: dataUrl.split(',')[1],
+                    mediaType: 'image/jpeg',
+                    dataUrl,
+                    fileName: file.name,
+                    size: blob.size,
+                    w, h, quality: q,
+                  });
+                };
+                r.readAsDataURL(blob);
+              } else {
+                tryQ(Math.max(0.4, q - 0.1));
+              }
+            }, 'image/jpeg', q);
+          };
+          tryQ(0.85);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片无法读取（可能是 HEIC 格式，请在相册导出 JPG）')); };
+        img.src = url;
+      });
+    }
+
+    async function handleImageSelect(file) {
       if (!file) return;
-      if (file.size > 10 * 1024 * 1024) { showToast('图片太大（>10MB），请压缩后再传', 'error'); return; }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const dataUrl = e.target.result;
-        const base64 = dataUrl.split(',')[1];
-        pendingImage = { base64: base64, mediaType: file.type || 'image/jpeg', dataUrl: dataUrl, fileName: file.name };
-        document.getElementById('imgPreviewThumb').src = dataUrl;
+      if (file.size > 30 * 1024 * 1024) { showToast('原图太大（>30MB），请精简后再传', 'error'); return; }
+      // Show "压缩中" state
+      document.getElementById('imgPreviewName').textContent = file.name + '（压缩中…）';
+      document.getElementById('imgPreviewSize').textContent = '原图 ' + fmtSize(file.size);
+      document.getElementById('imgPreview').classList.add('active');
+      document.getElementById('imgBtn').classList.add('has-image');
+      try {
+        const out = await compressImage(file);
+        pendingImage = out;
+        document.getElementById('imgPreviewThumb').src = out.dataUrl;
         document.getElementById('imgPreviewName').textContent = file.name;
-        document.getElementById('imgPreview').classList.add('active');
-        document.getElementById('imgBtn').classList.add('has-image');
-      };
-      reader.readAsDataURL(file);
+        document.getElementById('imgPreviewSize').textContent = `已压缩 → ${fmtSize(out.size)} · ${out.w}×${out.h}`;
+      } catch (e) {
+        showToast('图片处理失败：' + e.message, 'error');
+        clearPendingImage();
+      }
+    }
+
+    // ---------- 懒加载第三方库 ----------
+    const _loadedScripts = {};
+    function loadScript(url) {
+      if (_loadedScripts[url]) return _loadedScripts[url];
+      _loadedScripts[url] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = url; s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('无法加载库 ' + url));
+        document.head.appendChild(s);
+      });
+      return _loadedScripts[url];
+    }
+    async function loadPdfjs() {
+      if (window.pdfjsLib) return window.pdfjsLib;
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+      return window.pdfjsLib;
+    }
+    async function loadMammoth() {
+      if (window.mammoth) return window.mammoth;
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+      return window.mammoth;
+    }
+    async function loadXLSX() {
+      if (window.XLSX) return window.XLSX;
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+      return window.XLSX;
+    }
+
+    // ---------- 文档解析 ----------
+    async function extractDocText(file) {
+      const name = (file.name || '').toLowerCase();
+      const ext = name.split('.').pop();
+      if (['txt', 'md', 'csv', 'json', 'log'].includes(ext)) {
+        return await file.text();
+      }
+      if (ext === 'pdf') {
+        const pdfjs = await loadPdfjs();
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: buf }).promise;
+        let text = '';
+        const cap = Math.min(pdf.numPages, 50);
+        for (let i = 1; i <= cap; i++) {
+          const page = await pdf.getPage(i);
+          const tc = await page.getTextContent();
+          text += `[第 ${i} 页]\n` + tc.items.map(it => it.str).join(' ') + '\n\n';
+        }
+        if (pdf.numPages > 50) text += `[注：文档共 ${pdf.numPages} 页，已截取前 50 页]`;
+        return text;
+      }
+      if (ext === 'docx') {
+        const mammoth = await loadMammoth();
+        const buf = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: buf });
+        return result.value;
+      }
+      if (ext === 'xlsx' || ext === 'xls') {
+        const XLSX = await loadXLSX();
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        let text = '';
+        wb.SheetNames.forEach((sheetName) => {
+          const ws = wb.Sheets[sheetName];
+          const csv = XLSX.utils.sheet_to_csv(ws);
+          if (csv.trim()) text += `[Sheet: ${sheetName}]\n${csv}\n\n`;
+        });
+        return text;
+      }
+      throw new Error(`不支持的格式 .${ext}（仅支持 PDF / DOCX / XLSX / TXT / CSV / MD / JSON）`);
+    }
+
+    async function handleDocSelect(file) {
+      if (!file) return;
+      if (file.size > 20 * 1024 * 1024) { showToast('文件太大（>20MB），请精简后再传', 'error'); return; }
+      const ext = (file.name || '').toLowerCase().split('.').pop();
+      const ICON_MAP = { pdf: 'PDF', docx: 'DOC', doc: 'DOC', xlsx: 'XLS', xls: 'XLS', txt: 'TXT', md: 'MD', csv: 'CSV', json: 'JSON', log: 'LOG' };
+      document.getElementById('docPreviewIcon').textContent = ICON_MAP[ext] || ext.toUpperCase().slice(0,4);
+      document.getElementById('docPreviewName').textContent = file.name;
+      document.getElementById('docPreviewSize').textContent = `${fmtSize(file.size)} · 解析中…`;
+      document.getElementById('docPreview').classList.add('active');
+      document.getElementById('docBtn').classList.add('has-doc');
+      try {
+        let text = await extractDocText(file);
+        if (!text || !text.trim()) {
+          throw new Error('未提取到文字内容（可能是扫描版/纯图片 PDF）');
+        }
+        const MAX_CHARS = 40000;
+        let truncated = false;
+        if (text.length > MAX_CHARS) {
+          text = text.substring(0, MAX_CHARS) + '\n\n[内容已截断，原文档更长]';
+          truncated = true;
+        }
+        pendingDoc = { fileName: file.name, text, size: file.size, ext };
+        const charsK = (text.length / 1000).toFixed(1);
+        document.getElementById('docPreviewSize').textContent =
+          `${fmtSize(file.size)} · ${charsK}k 字符${truncated ? '（已截断）' : ''} · 发送时随消息一起分析`;
+      } catch (e) {
+        showToast('文件解析失败：' + e.message, 'error');
+        clearPendingDoc();
+      }
     }
 
     async function askAI(question) {
       const input = document.getElementById('chatInput');
       const text = (question || input.value).trim();
       const hasImage = !!pendingImage;
-      if (!text && !hasImage) return;
+      const hasDoc = !!pendingDoc;
+      if (!text && !hasImage && !hasDoc) return;
       input.value = '';
       showView('ai');
-      addMessage('user', text || '请分析这个商品', hasImage ? { imageUrl: pendingImage.dataUrl } : null);
-      const pending = addMessage('ai', hasImage ? '正在识别商品 + 全网比价 + 调用决策 skill...' : '正在查询你的业务数据...');
-      chatHistory.push({ role: 'user', content: text || '[上传了商品图片进行分析]' });
+
+      // 文档前缀：附件内容塞进消息开头
+      const docPrefix = hasDoc
+        ? `[附件文档: ${pendingDoc.fileName}]\n${pendingDoc.text}\n[/附件]\n\n`
+        : '';
+
+      const defaultImagePrompt = '请识别这个商品的品牌、品类，按 Skill A 采购决策给出 Buy/Test Small/Pass 结论。';
+      const userInstruction = text || (hasImage ? defaultImagePrompt : (hasDoc ? '请基于这份附件给出分析与建议。' : ''));
+      const fullUserMessage = docPrefix + userInstruction;
+
+      // 聊天界面只显示用户的真实指令 + 附件名（不显示文档内容，避免刷屏）
+      const displayParts = [];
+      if (text) displayParts.push(text);
+      if (hasDoc && !text) displayParts.push(`请基于「${pendingDoc.fileName}」给出分析与建议。`);
+      else if (hasDoc) displayParts.push(`（已上传 ${pendingDoc.fileName}）`);
+      const displayText = displayParts.join('\n') || '请分析这个商品';
+
+      addMessage('user', displayText, hasImage ? { imageUrl: pendingImage.dataUrl } : null);
+      const pending = addMessage('ai',
+        hasImage ? '正在识别商品 + 全网比价 + 调用决策 skill...'
+        : hasDoc ? '正在阅读附件并分析…'
+        : '正在查询你的业务数据...');
+
+      chatHistory.push({ role: 'user', content: fullUserMessage });
       document.getElementById('sendBtn').disabled = true;
       try {
         const body = hasImage
-          ? { image: { base64: pendingImage.base64, mediaType: pendingImage.mediaType }, userMessage: text || '请识别这个商品的品牌、品类，按 Skill A 采购决策给出 Buy/Test Small/Pass 结论。', session_id: SESSION_ID }
+          ? { image: { base64: pendingImage.base64, mediaType: pendingImage.mediaType }, userMessage: fullUserMessage, session_id: SESSION_ID }
           : { max_tokens: 1800, messages: chatHistory.slice(-10), session_id: SESSION_ID };
         const res = await api('', {
           method: 'POST',
@@ -1732,6 +1946,7 @@
         updateMessage(pending, reply, opts);
         chatHistory.push({ role: 'assistant', content: reply });
         if (hasImage) clearPendingImage();
+        if (hasDoc) clearPendingDoc();
       } catch (e) {
         updateMessage(pending, '分析失败：' + (e.message || '请稍后重试'));
       } finally {
@@ -1978,8 +2193,10 @@
       });
       document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.go)));
       document.querySelectorAll('[data-question]').forEach(btn => btn.addEventListener('click', () => askAI(btn.dataset.question)));
-      document.getElementById('imgFile').addEventListener('change', e => handleImageSelect(e.target.files[0]));
+      document.getElementById('imgFile').addEventListener('change', e => { handleImageSelect(e.target.files[0]); e.target.value = ''; });
       document.getElementById('imgPreviewRemove').addEventListener('click', clearPendingImage);
+      document.getElementById('docFile').addEventListener('change', e => { handleDocSelect(e.target.files[0]); e.target.value = ''; });
+      document.getElementById('docPreviewRemove').addEventListener('click', clearPendingDoc);
       document.querySelectorAll('[data-entry-platform]').forEach(btn => btn.addEventListener('click', () => setEntryPlatform(btn.dataset.entryPlatform)));
       document.getElementById('entryForm').addEventListener('submit', submitEntry);
       document.getElementById('entryReset').addEventListener('click', resetEntryForm);
